@@ -6,9 +6,9 @@
  * $Date$
  *
  * Copyright (c) 2002-2004 Mirco Bauer <meebey@meebey.net> <http://www.meebey.net>
- * 
+ *
  * Full LGPL License: <http://www.gnu.org/licenses/lgpl.txt>
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -24,28 +24,27 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-class Net_SmartIRC_messagehandler extends Net_SmartIRC_irccommands
+abstract class Net_SmartIRC_messagehandler extends Net_SmartIRC_irccommands
 {
     /* misc */
-    function _event_ping(&$ircdata)
+    protected function _event_ping($ircdata)
     {
         $this->log(SMARTIRC_DEBUG_CONNECTION, 'DEBUG_CONNECTION: Ping? Pong!',
             __FILE__, __LINE__
         );
-        $this->send('PONG '.substr($ircdata->rawmessage, 5), SMARTIRC_CRITICAL);
+        $this->send('PONG :' . $ircdata->message, SMARTIRC_CRITICAL);
     }
-    
-    function _event_error(&$ircdata)
+
+    protected function _event_error($ircdata)
     {
         if ($this->_autoretry) {
-            $this->_delayReconnect();
             $this->reconnect();
         } else {
             $this->disconnect(true);
         }
     }
-    
-    function _event_join(&$ircdata)
+
+    protected function _event_join($ircdata)
     {
         if ($this->_channelsyncing) {
             if ($this->_nick == $ircdata->nick) {
@@ -61,8 +60,8 @@ class Net_SmartIRC_messagehandler extends Net_SmartIRC_irccommands
                     'DEBUG_CHANNELSYNCING: synctime_start for '
                     .$ircdata->channel.' set to: '.$microint, __FILE__, __LINE__
                 );
-                $this->_channels[strtolower($channel->name)] = &$channel;
-                
+                $this->_channels[strtolower($channel->name)] = $channel;
+
                 // the class will get his own who data from the whole who channel list
                 $this->mode($channel->name);
                 $this->who($channel->name);
@@ -71,56 +70,56 @@ class Net_SmartIRC_messagehandler extends Net_SmartIRC_irccommands
                 // the class didn't join but someone else, lets get his who data
                 $this->who($ircdata->nick);
             }
-            
+
             $this->log(SMARTIRC_DEBUG_CHANNELSYNCING, 'DEBUG_CHANNELSYNCING: '
                 .$ircdata->nick.' joins channel: '.$ircdata->channel,
                 __FILE__, __LINE__
             );
-            $channel = &$this->_channels[strtolower($ircdata->channel)];
+            $channel = &$this->getChannel($ircdata->channel);
             $user = new Net_SmartIRC_channeluser();
             $user->nick = $ircdata->nick;
             $user->ident = $ircdata->ident;
             $user->host = $ircdata->host;
-            
+
             $this->_adduser($channel, $user);
         }
     }
-    
-    function _event_part(&$ircdata)
+
+    protected function _event_part($ircdata)
     {
         if ($this->_channelsyncing) {
             $this->_removeuser($ircdata);
         }
     }
-    
-    function _event_kick(&$ircdata)
+
+    protected function _event_kick($ircdata)
     {
         if ($this->_channelsyncing) {
             $this->_removeuser($ircdata);
         }
     }
-    
-    function _event_quit(&$ircdata)
+
+    protected function _event_quit($ircdata)
     {
         if ($this->_channelsyncing) {
             $this->_removeuser($ircdata);
         }
     }
-    
-    function _event_nick(&$ircdata)
+
+    protected function _event_nick($ircdata)
     {
         if ($this->_channelsyncing) {
-            $newnick = $ircdata->rawmessageex[2];
+            $newnick = $ircdata->params[0];
             $lowerednewnick = strtolower($newnick);
             $lowerednick = strtolower($ircdata->nick);
-            
+
             $channelkeys = array_keys($this->_channels);
             foreach ($channelkeys as $channelkey) {
                 // loop through all channels
-                $channel = &$this->_channels[$channelkey];
+                $channel = &$this->getChannel($channelkey);
                 foreach ($channel->users as $uservalue) {
                     // loop through all user in this channel
-                    
+
                     if ($ircdata->nick == $uservalue->nick) {
                         // found him
                         // time for updating the object and his nickname
@@ -128,20 +127,20 @@ class Net_SmartIRC_messagehandler extends Net_SmartIRC_irccommands
                             = $channel->users[$lowerednick]
                         ;
                         $channel->users[$lowerednewnick]->nick = $newnick;
-                        
+
                         if ($lowerednewnick != $lowerednick) {
                             unset($channel->users[$lowerednick]);
                         }
-                        
+
                         // he was maybe op or voice, update coming
                         $lists = array('founders', 'admins', 'ops', 'hops',
                             'voices'
                         );
                         foreach ($lists as $list) {
-                            if (isset($channel->$list[$ircdata->nick])) {
-                                $channel->$list[$newnick] 
-                                    = $channel->$list[$ircdata->nick];
-                                unset($channel->$list[$ircdata->nick]);
+                            if (isset($channel->{$list}[$ircdata->nick])) {
+                                $channel->{$list}[$newnick]
+                                    = $channel->{$list}[$ircdata->nick];
+                                unset($channel->{$list}[$ircdata->nick]);
                             }
                         }
                         break;
@@ -150,37 +149,37 @@ class Net_SmartIRC_messagehandler extends Net_SmartIRC_irccommands
             }
         }
     }
-    
-    function _event_mode(&$ircdata)
+
+    protected function _event_mode($ircdata)
     {
         // check if its own usermode
-        if ($ircdata->rawmessageex[2] == $this->_nick) {
-            $this->_usermode = substr($ircdata->rawmessageex[3], 1);
+        if ($ircdata->params[0] == $this->_nick) {
+            $this->_usermode = $ircdata->message;
         } else if ($this->_channelsyncing) {
-            // it's not, and we do channel syching
-            $channel = &$this->_channels[strtolower($ircdata->channel)];
+            // it's not, and we do channel syncing
+            $channel = &$this->getChannel($ircdata->channel);
             $this->log(SMARTIRC_DEBUG_CHANNELSYNCING,
                 'DEBUG_CHANNELSYNCING: updating channel mode for: '
                 .$channel->name, __FILE__, __LINE__
             );
-            $mode = $ircdata->rawmessageex[3];
-            $parameters = array_slice($ircdata->rawmessageex, 4);
-            
+            $mode = $ircdata->params[1];
+            $parameters = array_slice($ircdata->params, 2);
+
             $add = false;
             $remove = false;
             $modelength = strlen($mode);
             for ($i = 0; $i < $modelength; $i++) {
-                switch($mode[$i]) {
+                switch($mode{$i}) {
                     case '-':
                         $remove = true;
                         $add = false;
                         break;
-                    
+
                     case '+':
                         $add = true;
                         $remove = false;
                         break;
-                    
+
                     // user modes
                     case 'q':
                         $nick = array_shift($parameters);
@@ -204,7 +203,7 @@ class Net_SmartIRC_messagehandler extends Net_SmartIRC_irccommands
                             $channel->users[$lowerednick]->founder = false;
                         }
                         break;
-                    
+
                     case 'a':
                         $nick = array_shift($parameters);
                         $lowerednick = strtolower($nick);
@@ -227,7 +226,7 @@ class Net_SmartIRC_messagehandler extends Net_SmartIRC_irccommands
                             $channel->users[$lowerednick]->admin = false;
                         }
                         break;
-                    
+
                     case 'o':
                         $nick = array_shift($parameters);
                         $lowerednick = strtolower($nick);
@@ -250,7 +249,7 @@ class Net_SmartIRC_messagehandler extends Net_SmartIRC_irccommands
                             $channel->users[$lowerednick]->op = false;
                         }
                         break;
-                    
+
                     case 'h':
                         $nick = array_shift($parameters);
                         $lowerednick = strtolower($nick);
@@ -273,7 +272,7 @@ class Net_SmartIRC_messagehandler extends Net_SmartIRC_irccommands
                             $channel->users[$lowerednick]->hop = false;
                         }
                         break;
-                    
+
                     case 'v':
                         $nick = array_shift($parameters);
                         $lowerednick = strtolower($nick);
@@ -296,7 +295,7 @@ class Net_SmartIRC_messagehandler extends Net_SmartIRC_irccommands
                             $channel->users[$lowerednick]->voice = false;
                         }
                         break;
-                    
+
                     case 'k':
                         $key = array_shift($parameters);
                         if ($add) {
@@ -314,7 +313,7 @@ class Net_SmartIRC_messagehandler extends Net_SmartIRC_irccommands
                             $channel->key = '';
                         }
                         break;
-                    
+
                     case 'l':
                         if ($add) {
                             $limit = array_shift($parameters);
@@ -332,10 +331,10 @@ class Net_SmartIRC_messagehandler extends Net_SmartIRC_irccommands
                             $channel->user_limit = false;
                         }
                         break;
-                    
+
                     default:
                         // channel modes
-                        if ($mode[$i] == 'b') {
+                        if ($mode{$i} == 'b') {
                             $hostmask = array_shift($parameters);
                             if ($add) {
                                 $this->log(SMARTIRC_DEBUG_CHANNELSYNCING,
@@ -355,15 +354,15 @@ class Net_SmartIRC_messagehandler extends Net_SmartIRC_irccommands
                             }
                         } else {
                             $this->log(SMARTIRC_DEBUG_CHANNELSYNCING,
-                                'DEBUG_CHANNELSYNCING: storing unknown channelmode ('
-                                .$mode.') in channel->mode for: '
+                                'DEBUG_CHANNELSYNCING: updating unknown channelmode ('
+                                .$mode{$i}.') in channel->mode for: '
                                 .$channel->name, __FILE__, __LINE__
                             );
                             if ($add) {
-                                $channel->mode .= $mode[$i];
+                                $channel->mode .= $mode{$i};
                             }
                             if ($remove) {
-                                $channel->mode = str_replace($mode[$i], '',
+                                $channel->mode = str_replace($mode{$i}, '',
                                     $channel->mode
                                 );
                             }
@@ -372,22 +371,22 @@ class Net_SmartIRC_messagehandler extends Net_SmartIRC_irccommands
             }
         }
     }
-    
-    function _event_topic(&$ircdata)
+
+    protected function _event_topic($ircdata)
     {
         if ($this->_channelsyncing) {
-            $channel = &$this->_channels[strtolower($ircdata->rawmessageex[2])];
+            $channel = &$this->getChannel($ircdata->channel);
             $channel->topic = $ircdata->message;
         }
     }
-    
-    function _event_privmsg(&$ircdata)
+
+    protected function _event_privmsg($ircdata)
     {
         if ($ircdata->type & SMARTIRC_TYPE_CTCP_REQUEST) {
             // substr must be 1,4 because of \001 in CTCP messages
             if (substr($ircdata->message, 1, 4) == 'PING') {
                 $this->message(SMARTIRC_TYPE_CTCP_REPLY, $ircdata->nick,
-                    'PING '.substr($ircdata->message, 5, -1)
+                    'PING'.substr($ircdata->message, 5, -1)
                 );
             } elseif (substr($ircdata->message, 1, 7) == 'VERSION') {
                 if (!empty($this->_ctcpversion)) {
@@ -395,7 +394,7 @@ class Net_SmartIRC_messagehandler extends Net_SmartIRC_irccommands
                 } else {
                     $versionstring = SMARTIRC_VERSIONSTRING;
                 }
-                
+
                 $this->message(SMARTIRC_TYPE_CTCP_REPLY, $ircdata->nick,
                     'VERSION '.$versionstring
                 );
@@ -406,64 +405,56 @@ class Net_SmartIRC_messagehandler extends Net_SmartIRC_irccommands
             }
         }
     }
-    
+
     /* rpl_ */
-    function _event_rpl_welcome(&$ircdata)
+    protected function _event_rpl_welcome($ircdata)
     {
         $this->_loggedin = true;
-        
+
         // updating our nickname, that we got (maybe cutted...)
-        $this->_nick = $ircdata->rawmessageex[2];
-        
+        $this->_nick = $ircdata->params[0];
+
         $this->log(SMARTIRC_DEBUG_CONNECTION, 'DEBUG_CONNECTION: logged in as '
             . $this->_nick, __FILE__, __LINE__
         );
-        
+
     }
-    
-    function _event_rpl_motdstart(&$ircdata)
+
+    protected function _event_rpl_motdstart($ircdata)
     {
         $this->_motd[] = $ircdata->message;
     }
-    
-    function _event_rpl_motd(&$ircdata)
+
+    protected function _event_rpl_motd($ircdata)
     {
         $this->_motd[] = $ircdata->message;
     }
-    
-    function _event_rpl_endofmotd(&$ircdata)
+
+    protected function _event_rpl_endofmotd($ircdata)
     {
         $this->_motd[] = $ircdata->message;
     }
-    
-    function _event_rpl_umodeis(&$ircdata)
+
+    protected function _event_rpl_umodeis($ircdata)
     {
         $this->_usermode = $ircdata->message;
     }
-    
-    function _event_rpl_channelmodeis(&$ircdata) {
+
+    protected function _event_rpl_channelmodeis(&$ircdata) {
         if ($this->_channelsyncing && $this->isJoined($ircdata->channel)) {
-            $mode = $ircdata->rawmessageex[4];
-            $parameters = array_slice($ircdata->rawmessageex, 5);
-            
-            $ircdata->rawmessageex = array( 0 => '',
-                                            1 => '',
-                                            2 => '',
-                                            3 => $mode);
-            
-            foreach ($parameters as $value) {
-                $ircdata->rawmessageex[] = $value;
-            }
-            
+            $ircdata->params[0] = '';
+
             // let _mode() handle the received mode
             $this->_event_mode($ircdata);
         }
     }
-    
-    function _event_rpl_whoreply(&$ircdata)
+
+    protected function _event_rpl_whoreply($ircdata)
     {
         if ($this->_channelsyncing) {
-            $nick = $ircdata->rawmessageex[7];
+            $offset = (int) ($ircdata->params[0] == $this->_nick);
+            $nick = $ircdata->params[4 + $offset];
+
             if ($ircdata->channel == '*') {
                 // we got who info without channel info, so search the user
                 // on all channels and update him
@@ -477,127 +468,122 @@ class Net_SmartIRC_messagehandler extends Net_SmartIRC_irccommands
                 if (!$this->isJoined($ircdata->channel, $nick)) {
                     return;
                 }
-                
-                $channel = &$this->_channels[strtolower($ircdata->channel)];
-                
+
                 $user = new Net_SmartIRC_channeluser();
-                $user->ident = $ircdata->rawmessageex[4];
-                $user->host = $ircdata->rawmessageex[5];
-                $user->server = $ircdata->rawmessageex[6];
-                $user->nick = $ircdata->rawmessageex[7];
-                
+                $user->ident = $ircdata->params[1 + $offset];
+                $user->host = $ircdata->params[2 + $offset];
+                $user->server = $ircdata->params[3 + $offset];
+                $user->nick = $nick;
+
                 $user->ircop = false;
                 $user->founder = false;
                 $user->admin = false;
                 $user->op = false;
                 $user->hop = false;
                 $user->voice = false;
-                
-                $usermode = $ircdata->rawmessageex[8];
+
+                $usermode = $ircdata->params[5 + $offset];
+                $user->modes = $usermode;
+
                 $usermodelength = strlen($usermode);
                 for ($i = 0; $i < $usermodelength; $i++) {
-                    switch ($usermode[$i]) {
+                    switch ($usermode{$i}) {
                         case 'H':
                             $user->away = false;
                             break;
-                        
+
                         case 'G':
                             $user->away = true;
                             break;
-                        
+
                         case '*':
                             $user->ircop = true;
                             break;
-                        
+
                         case '~':
                             $user->founder = true;
                             break;
-                        
+
                         case '&':
                             $user->admin = true;
                             break;
-                        
+
                         case '@':
                             $user->op = true;
                             break;
-                        
+
                         case '%':
                             $user->hop = true;
                             break;
-                        
+
                         case '+':
                             $user->voice = true;
                     }
-        		    $user->modes .= $usermode[$i];
                 }
-                 
-                $user->hopcount = substr($ircdata->rawmessageex[9], 1);
-                $user->realname = implode(
-                    array_slice($ircdata->rawmessageex, 10), ' '
-                );
-                
+
+                $user->hopcount = $ircdata->messageex[0];
+                $user->realname = implode(array_slice($ircdata->messageex, 1), ' ');
+
+                $channel = &$this->getChannel($ircdata->channel);
                 $this->_adduser($channel, $user);
             }
         }
     }
-    
-    function _event_rpl_namreply(&$ircdata)
+
+    protected function _event_rpl_namreply($ircdata)
     {
-        if ($this->_channelsyncing == true) {
-            $channel = &$this->_channels[strtolower($ircdata->channel)];
-            
+        if ($this->_channelsyncing) {
             $userarray = explode(' ', rtrim($ircdata->message));
             $userarraycount = count($userarray);
             for ($i = 0; $i < $userarraycount; $i++) {
                 $user = new Net_SmartIRC_channeluser();
-                
-                $usermode = substr($userarray[$i], 0, 1);
-                switch ($usermode) {
+
+                switch ($userarray[$i]{0}) {
                     case '~':
                         $user->founder = true;
                         $user->nick = substr($userarray[$i], 1);
                         break;
-                    
+
                     case '&':
                         $user->admin = true;
                         $user->nick = substr($userarray[$i], 1);
                         break;
-                    
+
                     case '@':
                         $user->op = true;
                         $user->nick = substr($userarray[$i], 1);
                         break;
-                    
+
                     case '%':
                         $user->hop = true;
                         $user->nick = substr($userarray[$i], 1);
                         break;
-                    
+
                     case '+':
                         $user->voice = true;
                         $user->nick = substr($userarray[$i], 1);
                         break;
-                    
+
                     default:
                         $user->nick = $userarray[$i];
                 }
-                $user->modes .= $usermode[$i];
-                
+
+                $channel = &$this->getChannel($ircdata->channel);
                 $this->_adduser($channel, $user);
             }
         }
     }
-    
-    function _event_rpl_banlist(&$ircdata)
+
+    protected function _event_rpl_banlist($ircdata)
     {
         if ($this->_channelsyncing && $this->isJoined($ircdata->channel)) {
-            $channel = &$this->_channels[strtolower($ircdata->channel)];
-            $hostmask = $ircdata->rawmessageex[4];
+            $channel = &$this->getChannel($ircdata->channel);
+            $hostmask = $ircdata->params[1];
             $channel->bans[$hostmask] = true;
         }
     }
-    
-    function _event_rpl_endofbanlist(&$ircdata)
+
+    protected function _event_rpl_endofbanlist($ircdata)
     {
         if ($this->_channelsyncing && $this->isJoined($ircdata->channel)) {
             $channel = &$this->getChannel($ircdata->channel);
@@ -608,7 +594,7 @@ class Net_SmartIRC_messagehandler extends Net_SmartIRC_irccommands
                     'DEBUG_CHANNELSYNCING: synctime_stop for '.$ircdata->channel
                     .' set to: '.$channel->synctime_stop, __FILE__, __LINE__
                 );
-                
+
                 $channel->synctime = (float)$channel->synctime_stop
                     - (float)$channel->synctime_start
                 ;
@@ -620,20 +606,19 @@ class Net_SmartIRC_messagehandler extends Net_SmartIRC_irccommands
             }
         }
     }
-    
-    function _event_rpl_topic(&$ircdata)
+
+    protected function _event_rpl_topic($ircdata)
     {
         if ($this->_channelsyncing) {
-            $channel = &$this->_channels[strtolower($ircdata->channel)];
-            $topic = substr(implode(array_slice($ircdata->rawmessageex, 4), ' '), 1);
-            $channel->topic = $topic;
+            $channel = &$this->getChannel($ircdata->channel);
+            $channel->topic = $ircdata->message;
         }
     }
-    
+
     /* err_ */
-    function _event_err_nicknameinuse(&$ircdata)
+    protected function _event_err_nicknameinuse($ircdata)
     {
-        $this->_nicknameinuse();
+        $newnick = substr($this->_nick, 0, 5) . rand(0, 999);
+        $this->changeNick($newnick, SMARTIRC_CRITICAL);
     }
 }
-?>
