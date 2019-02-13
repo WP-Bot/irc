@@ -54,7 +54,7 @@ class WPBot Extends Bot {
 		}
 	}
 
-	function is_predefined_message( &$irc, &$data ) {
+	function is_predefined_message( $irc, $data ) {
 		if ( $data->message[0] == '.' || $data->message[0] == '!' ) {
 			foreach ( $this->predefined_messages AS $predef ) {
 				if ( empty( $predef['pattern'] ) ) {
@@ -87,7 +87,7 @@ class WPBot Extends Bot {
 		return $headers['Location'][1];
 	}
 
-	function developer( &$irc, &$data ) {
+	function developer( $irc, $data ) {
 		$msg = $this->message_split( $data );
 		$string = trim( $msg->message );
 
@@ -143,7 +143,7 @@ class WPBot Extends Bot {
 		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
 	}
 
-	function codex( &$irc, &$data ) {
+	function codex( $irc, $data ) {
 		$msg = $this->message_split( $data );
 
 		$google = $this->google_result( $msg->message . ' site:codex.wordpress.org' );
@@ -161,7 +161,7 @@ class WPBot Extends Bot {
 		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
 	}
 
-	function plugin( &$irc, &$data ) {
+	function plugin( $irc, $data ) {
 		$msg = $this->message_split( $data );
 		if ( isset( $this->plugin_details[ $msg->message ] ) ) {
 			$message = sprintf(
@@ -237,7 +237,7 @@ class WPBot Extends Bot {
 		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
 	}
 
-	function google( &$irc, &$data ) {
+	function google( $irc, $data ) {
 		$msg = $this->message_split( $data );
 
 		$google = $this->google_result( $msg->message );
@@ -252,7 +252,7 @@ class WPBot Extends Bot {
 		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
 	}
 
-	function lmgtfy( &$irc, &$data ) {
+	function lmgtfy( $irc, $data ) {
 		$msg = $this->message_split( $data );
 
 		$query = urlencode( $msg->message );
@@ -266,7 +266,7 @@ class WPBot Extends Bot {
 		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
 	}
 
-	function language( &$irc, &$data ) {
+	function language( $irc, $data ) {
 		$msg = $this->message_split( $data );
 
 		$message = sprintf(
@@ -278,7 +278,7 @@ class WPBot Extends Bot {
 		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
 	}
 
-	function count( &$irc, &$data ) {
+	function count( $irc, $data ) {
 		$counter = file_get_contents( 'https://wordpress.org/download/counter/?ajaxupdate=1' );
 
 		$message = sprintf(
@@ -289,7 +289,7 @@ class WPBot Extends Bot {
 		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
 	}
 
-	function md5( &$irc, &$data ) {
+	function md5( $irc, $data ) {
 		$msg = $this->message_split( $data );
 
 		$message = sprintf(
@@ -301,7 +301,7 @@ class WPBot Extends Bot {
 		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
 	}
 
-	function donthack( &$irc, &$data ) {
+	function donthack( $irc, $data ) {
 		$msg = $this->message_split( $data );
 
 		$message = sprintf(
@@ -312,7 +312,7 @@ class WPBot Extends Bot {
 		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
 	}
 
-	function trac_ticket( &$irc, &$data ) {
+	function trac_ticket( $irc, $data ) {
 		$msg = $this->message_split( $data );
 
 		preg_match_all( '/#([0-9]+?)\b/si', $msg->message, $tickets );
@@ -330,7 +330,7 @@ class WPBot Extends Bot {
 		}
 	}
 
-	function trac_changeset( &$irc, &$data ) {
+	function trac_changeset( $irc, $data ) {
 		$msg = $this->message_split( $data );
 
 		preg_match_all( '/r([0-9]+?)\b/si', $msg->message, $changes );
@@ -348,7 +348,7 @@ class WPBot Extends Bot {
 		}
 	}
 
-	function wpvulndb( &$irc, &$data ) {
+	function wpvulndb( $irc, $data ) {
 		$msg = $this->message_split( $data );
 
 		$api = file_get_contents( 'https://wpvulndb.com/api/v2/plugins/' . $msg->message );
@@ -383,7 +383,7 @@ class WPBot Extends Bot {
 		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
 	}
 
-	function sucuri_scan( &$irc, &$data ) {
+	function sucuri_scan( $irc, $data ) {
 		$msg = $this->message_split( $data );
 		$site = 'https://sitecheck.sucuri.net/';
 
