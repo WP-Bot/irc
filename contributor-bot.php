@@ -1,13 +1,14 @@
 <?php
 define( 'ABSPATH', dirname( __FILE__ ) );
 
-require_once( ABSPATH . '/config.php' );
-require_once( ABSPATH . '/IRC-framework/SmartIRC.php' );
+require_once ABSPATH . '/vendor/autoload.php';
+require_once ABSPATH . '/IRC-framework/SmartIRC.php';
+require_once ABSPATH . '/config.php';
 
 /**
  * Grab dependencies
  */
-require_once( ABSPATH . '/doc-bot.php' );
+require_once ABSPATH . '/doc-bot.php';
 
 
 /**
