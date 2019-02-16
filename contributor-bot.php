@@ -20,6 +20,11 @@ class Bot {
 	public $tell         = array();
 	public $db;
 
+	private $spam_check    = array();
+	private $spam_kicked   = array();
+	private $spam_repeats  = 5;
+	private $spam_auto_ban = 2;
+
 	/**
 	 * The class construct prepares our functions and database connections
 	 */
@@ -34,6 +39,16 @@ class Bot {
 		 * This is done because we run a bit of regex over it to identify words for consistency
 		 */
 		$this->appreciation = str_replace( ',', '|', strtolower( APPRECIATION ) );
+
+		/**
+		 * Add spam protection config overrides, if they are set.
+		 */
+		if ( defined( 'SPAM_REPEATS' ) ) {
+			$this->spam_repeats = SPAM_REPEATS;
+		}
+		if ( defined( 'SPAM_AUTO_BAN' ) ) {
+			$this->spam_auto_ban = SPAM_AUTO_BAN;
+		}
 
 		$this->prepare_tell_notifications();
 	}
@@ -69,7 +84,7 @@ class Bot {
 		return str_replace( array( '@', '%', '+', '~', ':', ',', '<', '>' ), '', $nick );
 	}
 
-	function channel_query( &$irc, &$data ) {
+	function channel_query( $irc, $data ) {
 		$is_docbot       = false;
 		$is_question     = false;
 		$is_appreciation = false;
@@ -182,14 +197,14 @@ class Bot {
 		return $result;
 	}
 
-	function verify_own_nickname( &$irc ) {
+	function verify_own_nickname( $irc ) {
 		if ( BOTNICK != $irc->_nick ) {
 			$irc->login( BOTNICK, BOTNAME . ' - version ' . BOTVERSION, 0, BOTNICK, BOTPASS );
 		}
 	}
 
-	function log_event( $event, &$irc, &$data ) {
-		//$this->verify_own_nickname( $irc );
+	function log_event( $event, $irc, $data ) {
+		$this->verify_own_nickname( $irc );
 		$this->pdo_ping();
 
 		$this->db->query( "
@@ -213,25 +228,29 @@ class Bot {
 	" );
 	}
 
-	function log_kick( &$irc, &$data ) {
+	function log_kick( $irc, $data ) {
 		$this->log_event( 'kick', $irc, $data );
 	}
 
-	function log_part( &$irc, &$data ) {
+	function log_part( $irc, $data ) {
 		$this->log_event( 'part', $irc, $data );
 	}
 
-	function log_quit( &$irc, &$data ) {
+	function log_quit( $irc, $data ) {
 		$this->log_event( 'quit', $irc, $data );
 	}
 
-	function log_join( &$irc, &$data ) {
+	function log_join( $irc, $data ) {
 		$this->log_event( 'join', $irc, $data );
+
+		if ( $data->nick == $irc->_nick ) {
+			$irc->message( SMARTIRC_TYPE_QUERY, 'ChanServ', 'op #WordPress ' . $irc->_nick );
+		}
 
 		$this->tell( $irc, $data );
 	}
 
-	function help_cmd( &$irc, &$data ) {
+	function help_cmd( $irc, $data ) {
 		$message = sprintf( 'For WPBot Help, see %s',
 			HELP_URL
 		);
@@ -278,7 +297,7 @@ class Bot {
 		);
 	}
 
-	function add_tell( &$irc, &$data ) {
+	function add_tell( $irc, $data ) {
 		$msg = $this->message_split( $data );
 
 		$words              = explode( ' ', $data->message );
@@ -324,7 +343,7 @@ class Bot {
 		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
 	}
 
-	function tell( &$irc, &$data ) {
+	function tell( $irc, $data ) {
 		if ( isset( $this->tell[ $data->nick ] ) ) {
 			$unset = array();
 			foreach( $this->tell[ $data->nick ] AS $tell ) {
@@ -356,7 +375,7 @@ class Bot {
 		}
 	}
 
-	function new_user_guidelines( &$irc, &$data ) {
+	function new_user_guidelines( $irc, $data ) {
 		$message = sprintf(
 			'Welcome to #WordPress, %s. Please review our guidelines available at %s, and if you at any time see behavior you feel is inappropriate, you may utilize the %s command, either in the channel or in a private message to notify a Support Team member.',
 			$data->nick,
@@ -367,7 +386,7 @@ class Bot {
 		$irc->message( SMARTIRC_TYPE_NOTICE, $data->nick, $message );
 	}
 
-	function request_ops( &$irc, &$data ) {
+	function request_ops( $irc, $data ) {
 		// Break out early if there's no Slack API
 		if ( ! defined( 'SLACK_API' ) ) {
 			return;
@@ -529,6 +548,64 @@ class Bot {
 
 		return $output;
 	}
+
+	function spam_protection( $irc, $data ) {
+		// If this is the users first message, it's stored and ignored.
+		if ( ! isset( $this->spam_check[ $data->nick ] ) ) {
+			$this->spam_check[ $data->nick ] = array(
+				'message'   => $data->message,
+				'timestamp' => time(),
+				'repeat'    => 1,
+			);
+			return;
+		}
+
+		// If this message is not the same as the previous one, overwrite it and stop early.
+		if ( $this->spam_check[ $data->nick ]['message'] != $data->message ) {
+			$this->spam_check[ $data->nick ] = array(
+				'message'   => $data->message,
+				'timestamp' => time(),
+				'repeat'    => 1,
+			);
+			return;
+		}
+
+		// The message should at this point be a repeat, check how often it's been repeated.
+		$this->spam_check[ $data->nick ]['repeat']++;
+
+		// Three repetitions makes us count this as spam.
+		if ( $this->spam_check[ $data->nick ]['repeat'] >= $this->spam_repeats ) {
+			if ( ! isset( $this->spam_kicked[ $data->nick ] ) ) {
+				$this->spam_kicked[ $data->nick ] = array(
+					'repeat'    => 0,
+					'timestamp' => time(),
+				);
+			}
+
+			$this->spam_kicked[ $data->nick ]['repeat']++;
+
+			if ( $this->spam_kicked[ $data->nick ]['repeat'] >= $this->spam_auto_ban ) {
+				// $data->nick . "!" . $data->ident . "@" . $data->host
+				$hostmask = sprintf(
+					'*!*@%s',
+					$data->host
+				);
+
+				$irc->ban( $data->channel, $hostmask, SMARTIRC_CRITICAL );
+			}
+
+			$irc->kick( $data->channel, $data->nick, 'Please refrain from spamming in #WordPress.', SMARTIRC_CRITICAL );
+		}
+	}
+
+	function spam_protection_gc() {
+		foreach ( $this->spam_check as $nick => $entry ) {
+			// Remove entries that are more than a minute old, this keeps memory consumption down, and spammers will spam fast.
+			if ( ( time() - $entry['timestamp'] ) >= 60 ) {
+				unset( $this->spam_check[ $nick ] );
+			}
+		}
+	}
 }
 
 /**
@@ -543,6 +620,16 @@ $irc = new Net_SmartIRC();
 $irc->setDebugLevel( SMARTIRC_DEBUG_ALL ); // Set debug mode
 $irc->setUseSockets( true ); // We want to use actual sockets, if this is false fsock will be used, which is not as ideal
 $irc->setChannelSyncing( true ); // Channel sync allows us to get user details which we use in our logs, this is how we can check if users are in the channel or not
+
+/**
+ * Spam protection
+ */
+$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '/./', $bot, 'spam_protection' );
+
+/**
+ * Garbage collection for the spam protection.
+ */
+$irc->registerTimeHandler( 100000, $bot, 'spam_protection_gc' );
 
 /**
  * Set up hooks for events to trigger on
@@ -584,7 +671,6 @@ $irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '\br[0-9]+?\b', $bot, 'trac_
  */
 $irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '/./', $bot, 'is_predefined_message' );
 $irc->registerTimeHandler( 600000, $bot, 'prepare_predefined_messages' );
-$irc->registerActionHandler( SMARTIRC_TYPE_QUERY, '/\.predef-reload/', $bot, 'prepare_predefined_messages' );
 
 
 /**
