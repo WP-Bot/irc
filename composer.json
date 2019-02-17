@@ -1,0 +1,6 @@
+{
+    "name": "wp-bot/irc",
+    "description": "The WordPress IRC Bot",
+    "type": "project",
+    "license": "GPL-2.0-or-later"
+}
