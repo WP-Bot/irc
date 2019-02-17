@@ -2,5 +2,8 @@
     "name": "wp-bot/irc",
     "description": "The WordPress IRC Bot",
     "type": "project",
+    "require": {
+        "pear/net_smartirc": "^1.1"
+    },
     "license": "GPL-2.0-or-later"
 }
