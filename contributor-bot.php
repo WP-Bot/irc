@@ -2,7 +2,6 @@
 define( 'ABSPATH', dirname( __FILE__ ) );
 
 require_once ABSPATH . '/vendor/autoload.php';
-require_once ABSPATH . '/IRC-framework/SmartIRC.php';
 require_once ABSPATH . '/config.php';
 
 /**
@@ -208,25 +207,29 @@ class Bot {
 		$this->verify_own_nickname( $irc );
 		$this->pdo_ping();
 
-		$this->db->query( "
-		INSERT INTO
-			messages (
-				userhost,
-				nickname,
-				message,
-				event,
-				channel,
-				time
+		try {
+			$this->db->query( "
+			INSERT INTO
+				messages (
+					userhost,
+					nickname,
+					message,
+					event,
+					channel,
+					time
+				)
+			VALUES (
+				" . $this->db->quote( $data->nick . "!" . $data->ident . "@" . $data->host ) . ",
+				" . $this->db->quote( $data->nick ) . ",
+				" . $this->db->quote( $data->message ) . ",
+				" . $this->db->quote( $event ) . ",
+				" . $this->db->quote( $data->channel ) . ",
+				" . $this->db->quote( date( "Y-m-d H:i:s" ) ) . "
 			)
-		VALUES (
-			" . $this->db->quote( $data->nick . "!" . $data->ident . "@" . $data->host ) . ",
-			" . $this->db->quote( $data->nick ) . ",
-			" . $this->db->quote( $data->message ) . ",
-			" . $this->db->quote( $event ) . ",
-			" . $this->db->quote( $data->channel ) . ",
-			" . $this->db->quote( date( "Y-m-d H:i:s" ) ) . "
-		)
-	" );
+			" );
+		} catch ( PDOException $e ) {
+			echo 'PDO Exception: ' . $e->getMessage();
+		}
 	}
 
 	function log_kick( $irc, $data ) {
@@ -315,31 +318,41 @@ class Bot {
 
 		$time = date( "Y-m-d H:i:s" );
 
-		$this->db->query( "
-			INSERT INTO
-				tell (
-					`time`,
-					`recipient`,
-					`sender`,
-					`message`
+		try {
+			$this->db->query( "
+				INSERT INTO
+					tell (
+						`time`,
+						`recipient`,
+						`sender`,
+						`message`
+					)
+				VALUES (
+					" . $this->db->quote( $time ) . ",
+					" . $this->db->quote( $msg->user ) . ",
+					" . $this->db->quote( $data->nick ) . ",
+					" . $this->db->quote( $msg->message ) . "
 				)
-			VALUES (
-				" . $this->db->quote( $time ) . ",
-				" . $this->db->quote( $msg->user ) . ",
-				" . $this->db->quote( $data->nick ) . ",
-				" . $this->db->quote( $msg->message ) . "
-			)
-		" );
+			" );
+		
+			$id = $this->db->lastInsertId();
 
-		$id = $this->db->lastInsertId();
+			$this->add_tell_notification( $id, $msg->user, $time, $data->nick, $msg->message );
+	
+			$message = sprintf(
+				'%s: I will relay your message to %s when I see them next.',
+				$data->nick,
+				$msg->user
+			);
+		} catch ( PDOException $e ) {
+			echo 'PDO Exception: ' . $e->getMessage();
 
-		$this->add_tell_notification( $id, $msg->user, $time, $data->nick, $msg->message );
-
-		$message = sprintf(
-			'%s: I will relay your message to %s when I see them next.',
-			$data->nick,
-			$msg->user
-		);
+			$message = sprintf(
+				'%s: I cannot relay your message to %s right now. My database is broken.',
+				$data->nick,
+				$msg->user
+			);
+		}
 
 		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
 	}
@@ -365,14 +378,18 @@ class Bot {
 
 			$this->pdo_ping();
 
-			$this->db->query( "
-				UPDATE
-					tell t
-				SET
-					t.told = 1
-				WHERE
-					t.id IN (" . implode( ',', $unset ) . ")
-			" );
+			try {
+				$this->db->query( "
+					UPDATE
+						tell t
+					SET
+						t.told = 1
+					WHERE
+						t.id IN (" . implode( ',', $unset ) . ")
+				" );
+			} catch ( PDOException $e ) {
+				echo 'PDO Exception: ' . $e->getMessage();
+			}
 		}
 	}
 
@@ -393,19 +410,23 @@ class Bot {
 			return;
 		}
 
-		// Get the most recent log event from the channel for use in our Slack message
-		$last_entry = $this->db->query( "
-			SELECT
-				m.id
-			FROM
-				messages m
-			WHERE
-				event = 'message'
-			ORDER BY
-				m.id DESC
-			LIMIT 1
-		" );
-		$last_entry = $last_entry->fetchObject();
+		try {
+			// Get the most recent log event from the channel for use in our Slack message
+			$last_entry = $this->db->query( "
+				SELECT
+					m.id
+				FROM
+					messages m
+				WHERE
+					event = 'message'
+				ORDER BY
+					m.id DESC
+				LIMIT 1
+			" );
+			$last_entry = $last_entry->fetchObject();
+		} catch ( PDOException $e ) {
+			echo 'PDO Exception: ' . $e->getMessage();
+		}
 
 		/*
 		 * Log the use of the command
@@ -524,27 +545,31 @@ class Bot {
 	function get_logs( $count ) {
 		$output = array();
 
-		$entries = $this->db->query( "
-			SELECT
-				m.id,
-				m.nickname,
-				m.message,
-				m.time
-			FROM
-				messages m
-			WHERE
-				event = 'message'
-			ORDER BY
-				m.id DESC
-			LIMIT " . $count . "
-		" );
-		while( $entry = $entries->fetchObject() ) {
-			$output[] = sprintf(
-				'[%s] %s: %s',
-				date( "H:i:s", strtotime( $entry->time ) ),
-				$entry->nickname,
-				$entry->message
-			);
+		try {
+			$entries = $this->db->query( "
+				SELECT
+					m.id,
+					m.nickname,
+					m.message,
+					m.time
+				FROM
+					messages m
+				WHERE
+					event = 'message'
+				ORDER BY
+					m.id DESC
+				LIMIT " . $count . "
+			" );
+			while( $entry = $entries->fetchObject() ) {
+				$output[] = sprintf(
+					'[%s] %s: %s',
+					date( "H:i:s", strtotime( $entry->time ) ),
+					$entry->nickname,
+					$entry->message
+				);
+			}
+		} catch ( PDOException $e ) {
+			echo 'PDO Exception: ' . $e->getMessage();
 		}
 
 		return $output;

@@ -4,6 +4,7 @@
     "type": "project",
     "require": {
         "stil/curl-easy": "^1.2"
+        "pear/net_smartirc": "^1.1"
     },
     "license": "GPL-2.0-or-later"
 }
