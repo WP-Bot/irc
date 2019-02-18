@@ -1,11 +1,61 @@
 {
     "_readme": [
         "This file locks the dependencies of your project to a known state",
-        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
+        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "485a53073ffc400b51e44500d0a94bd8",
+    "content-hash": "99ef1249d10ce0a1c830e2a6431b282f",
     "packages": [
+        {
+            "name": "pear/net_smartirc",
+            "version": "v1.1.14",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/pear/Net_SmartIRC.git",
+                "reference": "7b0b6565a0935cabb49ae8f66fe24802635a00cb"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/pear/Net_SmartIRC/zipball/7b0b6565a0935cabb49ae8f66fe24802635a00cb",
+                "reference": "7b0b6565a0935cabb49ae8f66fe24802635a00cb",
+                "shasum": ""
+            },
+            "require-dev": {
+                "phpdocumentor/phpdocumentor": "2.7.*"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-0": {
+                    "Net": ""
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "include-path": [
+                "./"
+            ],
+            "license": [
+                "LGPL"
+            ],
+            "authors": [
+                {
+                    "name": "Amir Mohammad Saied",
+                    "email": "amirsaied@gmail.com",
+                    "role": "Lead"
+                },
+                {
+                    "name": "Mirco Bauer",
+                    "email": "meebey@php.net",
+                    "role": "Lead"
+                },
+                {
+                    "name": "Garrett Whitehorn",
+                    "email": "garrettw87@gmail.com",
+                    "role": "Lead"
+                }
+            ],
+            "description": "More info available on: http://pear.php.net/package/Net_SmartIRC",
+            "time": "2019-02-14T17:28:04+00:00"
+        },
         {
             "name": "stil/curl-easy",
             "version": "v1.2.1",
