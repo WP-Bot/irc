@@ -576,6 +576,11 @@ class Bot {
 	}
 
 	function spam_protection( $irc, $data ) {
+		// Avoid tracking our selves.
+		if ( $this->_nick == $data->nick ) {
+			return;
+		}
+
 		// If this is the users first message, it's stored and ignored.
 		if ( ! isset( $this->spam_check[ $data->nick ] ) ) {
 			$this->spam_check[ $data->nick ] = array(
