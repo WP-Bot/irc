@@ -584,20 +584,31 @@ class Bot {
 		// If this is the users first message, it's stored and ignored.
 		if ( ! isset( $this->spam_check[ $data->nick ] ) ) {
 			$this->spam_check[ $data->nick ] = array(
-				'message'   => $data->message,
+				'message'   => array(
+					$data->message,
+				),
 				'timestamp' => time(),
 				'repeat'    => 1,
 			);
 			return;
 		}
 
-		// If this message is not the same as the previous one, overwrite it and stop early.
-		if ( $this->spam_check[ $data->nick ]['message'] != $data->message ) {
+		// If this message is not the same as the previous one, add it to the history.
+		if ( ! in_array( $data->message, $this->spam_check[ $data->nick ]['message'] ) ) {
 			$this->spam_check[ $data->nick ] = array(
-				'message'   => $data->message,
 				'timestamp' => time(),
 				'repeat'    => 1,
 			);
+			$this->spam_check[ $data->nick ]['message'][] = $data->message;
+
+			/*
+			 * If there's too many messages stored, remove the oldest entries until we're below the entry limit.
+			 * We use a loop here, in case there's lag we don't want to accidentally keep increasing the
+			 * amount of lines unintentionally.
+			 */
+			while ( count( $this->spam_check[ $data->nick ]['message'] ) > SPAM_MEMORY ) {
+				array_shift( $this->spam_check[ $data->nick ]['message'] );
+			}
 			return;
 		}
 

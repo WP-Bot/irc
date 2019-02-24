@@ -15,6 +15,7 @@ define( 'HELP_URL', 'http://www.wp-bot.net/');
  */
 define( 'SPAM_REPEATS', 5 ); // How many times a line can be repeated before they are automatically kicked.
 define( 'SPAM_AUTO_BAN', 2 ); // How many times a user can be kicked before they are instead banned.
+define( 'SPAM_MEMORY', 1 ); // How many lines of text to remember and compare against from each user.
 
 /**
  * Comma separated list of strings used to show appreciation
