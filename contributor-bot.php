@@ -716,10 +716,16 @@ class Bot {
 	}
 
 	function spam_protection_gc() {
+		// Remove entries that are more than a minute old, this keeps memory consumption down, and spammers will spam fast.
 		foreach ( $this->spam_check as $nick => $entry ) {
-			// Remove entries that are more than a minute old, this keeps memory consumption down, and spammers will spam fast.
 			if ( ( time() - $entry['timestamp'] ) >= 60 ) {
 				unset( $this->spam_check[ $nick ] );
+			}
+		}
+
+		foreach ( $this->spam_muted as $nick => $entry ) {
+			if ( ( time() - $entry['timestamp'] ) >= 60 ) {
+				unset( $this->spam_muted[ $nick ] );
 			}
 		}
 	}
