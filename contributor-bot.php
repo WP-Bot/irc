@@ -703,7 +703,7 @@ class Bot {
 				);
 
 				$mute_command = sprintf(
-					'+e %s',
+					'+q %s',
 					$hostmask
 				);
 
@@ -734,7 +734,7 @@ class Bot {
 		foreach ( $this->spam_muted as $nick => $entry ) {
 			if ( ( time() < $entry['timestamp'] ) >= 900 ) {
 				$unmute = sprintf(
-					'-e %s',
+					'-q %s',
 					$entry['hostmask']
 				);
 
