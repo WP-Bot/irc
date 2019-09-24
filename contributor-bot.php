@@ -20,10 +20,13 @@ class Bot {
 	public $tell         = array();
 	public $db;
 
-	private $spam_check    = array();
-	private $spam_kicked   = array();
-	private $spam_repeats  = 5;
-	private $spam_auto_ban = 2;
+	private $spam_check         = array();
+	private $spam_kicked        = array();
+	private $spam_muted         = array();
+	private $spam_repeats       = 5;
+	private $spam_auto_ban      = 2;
+	private $spam_lines         = 5;
+	private $spam_lines_seconds = 3;
 
 	/**
 	 * The class construct prepares our functions and database connections
@@ -48,6 +51,12 @@ class Bot {
 		}
 		if ( defined( 'SPAM_AUTO_BAN' ) ) {
 			$this->spam_auto_ban = SPAM_AUTO_BAN;
+		}
+		if ( defined( 'SPAM_LINES' ) ) {
+			$this->spam_lines = SPAM_LINES;
+		}
+		if ( defined( 'SPAM_LINES_SECONDS' ) ) {
+			$this->spam_lines_seconds = SPAM_LINES_SECONDS;
 		}
 
 		$this->prepare_tell_notifications();
@@ -406,7 +415,7 @@ class Bot {
 
 	function request_ops( $irc, $data ) {
 		// Break out early if there's no Slack API
-		if ( ! defined( 'SLACK_API' ) ) {
+		if ( ! defined( 'SLACK_API' ) || empty( SLACK_API ) ) {
 			return;
 		}
 
@@ -451,7 +460,11 @@ class Bot {
 			$log_link
 		);
 
-		$this->send_slack_alert( $simple_message );
+		if ( defined( 'SLACK_RICH_LOG' ) && SLACK_RICH_LOG ) {
+			$this->send_rich_slack_alert( $message, $log_link, $note );
+		} else {
+			$this->send_slack_alert( $simple_message );
+		}
 
 		$reply = "Your request for an operator to look into the current channel situation has been forwarded to the WordPress Support Team.";
 
@@ -491,7 +504,7 @@ class Bot {
 
 	function send_rich_slack_alert( $message, $log_link, $note = null ) {
 		// Break out early if there's no Slack API
-		if ( ! defined( 'SLACK_API' ) ) {
+		if ( ! defined( 'SLACK_API' ) || empty( SLACK_API ) ) {
 			return;
 		}
 
@@ -587,18 +600,20 @@ class Bot {
 				'message'   => array(
 					$data->message,
 				),
-				'timestamp' => time(),
-				'repeat'    => 1,
+				'timestamp'  => time(),
+				'repeat'     => 1,
+				'succession' => array(
+					'times'     => 1,
+					'timestamp' => time(),
+				)
 			);
 			return;
 		}
 
 		// If this message is not the same as the previous one, add it to the history.
 		if ( ! in_array( $data->message, $this->spam_check[ $data->nick ]['message'] ) ) {
-			$this->spam_check[ $data->nick ] = array(
-				'timestamp' => time(),
-				'repeat'    => 1,
-			);
+			$this->spam_check[ $data->nick ]['timestamp'] = time();
+			$this->spam_check[ $data->nick ]['repeat'] = 1;
 			$this->spam_check[ $data->nick ]['message'][] = $data->message;
 
 			/*
@@ -637,6 +652,57 @@ class Bot {
 			}
 
 			$irc->kick( $data->channel, $data->nick, 'Please refrain from spamming in #WordPress.', SMARTIRC_CRITICAL );
+			return;
+		}
+
+		// Check if it's rapid, but unique, lines, which may still be spam!
+		if ( ( time() - $this->spam_check[ $data->nick ]['succession']['timestamp'] ) <= $this->spam_lines_seconds ) {
+			$this->spam_check[ $data->nick ]['succession']['times']++;
+		} else {
+			$this->spam_check[ $data->nick ]['succession'] = array(
+				'timestamp' => time(),
+				'times'     => 1,
+			);
+		}
+
+		// Is the user spamming
+		if ( $this->spam_check[ $data->nick ]['succession']['times'] >= $this->spam_lines ) {
+			if ( ! isset( $this->spam_muted[ $data->nick ] ) ) {
+				$this->spam_muted[ $data->nick ] = array(
+					'repeat'     => 0,
+					'timestampe' => time(),
+				);
+			}
+
+			$this->spam_muted[ $data->nick ]['repeat']++;
+
+			if ( $this->spam_muted[ $data->nick ]['repeat'] >= $this->spam_auto_ban ) {
+				// $data->nick . "!" . $data->ident . "@" . $data->host
+				$hostmask = sprintf(
+					'*!*@%s',
+					$data->host
+				);
+
+				$irc->ban( $data->channel, $hostmask, SMARTIRC_CRITICAL );
+
+				$irc->kick( $data->channel, $data->nick, 'Banned for repeated spam in #WordPress.', SMARTIRC_CRITICAL );
+			} else {
+				// $data->nick . "!" . $data->ident . "@" . $data->host
+				$hostmask = sprintf(
+					'*!*@%s',
+					$data->host
+				);
+
+				$mute_command = sprintf(
+					'+e %s',
+					$hostmask
+				);
+
+				$this->spam_muted[ $data->nick ]['repeat']['timestamp'] = time();
+				$this->spam_muted[ $data->nick ]['repeat']['hostmask'] = $hostmask;
+
+				$irc->mode( $data->channel, $mute_command, SMARTIRC_CRITICAL );
+			}
 		}
 	}
 
@@ -645,6 +711,21 @@ class Bot {
 			// Remove entries that are more than a minute old, this keeps memory consumption down, and spammers will spam fast.
 			if ( ( time() - $entry['timestamp'] ) >= 60 ) {
 				unset( $this->spam_check[ $nick ] );
+			}
+		}
+	}
+
+	function maybe_unmute_users( $irc ) {
+		foreach ( $this->spam_muted as $nick => $entry ) {
+			if ( ( time() < $entry['timestamp'] ) >= 900 ) {
+				$unmute = sprintf(
+					'-e %s',
+					$entry['hostmask']
+				);
+
+				$irc->mode( '#WordPress', $unmute, SMARTIRC_MEDIUM );
+
+				unset( $this->spam_muted[ $nick ] );
 			}
 		}
 	}
@@ -713,6 +794,11 @@ $irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '\br[0-9]+?\b', $bot, 'trac_
  */
 $irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '/./', $bot, 'is_predefined_message' );
 $irc->registerTimeHandler( 600000, $bot, 'prepare_predefined_messages' );
+
+/**
+ * Scheduled task runners
+ */
+$irc->registerTimeHandler( 60000, $bot, 'maybe_unmute_users' );
 
 
 /**
