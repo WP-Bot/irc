@@ -2,7 +2,16 @@
 define( 'ABSPATH', dirname( __FILE__ ) );
 
 require_once ABSPATH . '/vendor/autoload.php';
-require_once ABSPATH . '/config.php';
+
+// Check if the config exists one directory up
+if ( file_exists( ABSPATH . '/../config.php' ) ) {
+	require_once ABSPATH . '/../config.php';
+} elseif ( file_exists( ABSPATH . '/config.php' ) ) {
+	require_once ABSPATH . '/config.php';
+} else {
+	// If no config was found, throw an exception
+	throw new Exception( 'Could not find any config.php file.' );
+}
 
 /**
  * Grab dependencies
