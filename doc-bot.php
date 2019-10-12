@@ -17,56 +17,29 @@ class WPBot Extends Bot {
 	}
 
 	function prepare_predefined_messages() {
-		$new_predefs = array();
+		$wpbot_api = curl_init( 'https://wp-bot.net/wp-json/wpbot/v1/commands' );
+		curl_setopt( $wpbot_api, CURLOPT_RETURNTRANSFER, true );
+		curl_setopt( $wpbot_api, CURLOPT_SSL_VERIFYPEER, false );
 
-		$this->pdo_ping();
+		$result = curl_exec( $wpbot_api );
+		curl_close( $wpbot_api );
 
-		try {
-			$entries = $this->db->query( "
-				SELECT 
-					p.post_title, 
-					m.meta_value
-				FROM 
-					wp_posts p
-				LEFT JOIN 
-					wp_postmeta m 
-						ON ( m.post_id = p.ID ) 
-				WHERE 
-					p.post_status =  'publish'
-				AND 
-					p.post_type =  'wpbot_commands'
-				AND 
-					m.meta_key =  '_wpbot_command'
-			" );
-			while ( $entry = $entries->fetchObject() ) {
-				$meta = unserialize( $entry->meta_value );
-
-				$new_predefs[] = array(
-						'pattern'  => $meta['trigger'],
-						'response' => $meta['response'],
-						'uri'      => $meta['uri']
-				);
-			}
-
-			$this->predefined_messages = $new_predefs;
-		} catch( PDOException $e ) {
-			echo 'PDO Exception: ' . $e->getMessage();
-		}
+		$this->predefined_messages = json_decode( $result );
 	}
 
 	function is_predefined_message( $irc, $data ) {
 		if ( $data->message[0] == '.' || $data->message[0] == '!' ) {
 			foreach ( $this->predefined_messages AS $predef ) {
-				if ( empty( $predef['pattern'] ) ) {
+				if ( empty( $predef->command ) ) {
 					continue;
 				}
-				if ( preg_match( sprintf( "/^(!|\.)%s\b/i", $predef['pattern'] ), $data->message ) ) {
+				if ( preg_match( sprintf( "/^(!|\.)%s\b/i", $predef->command ), $data->message ) ) {
 					$msg = $this->message_split( $data );
 
 					$message = sprintf(
 							'%s: %s',
 							$msg->user,
-							$predef['response']
+							$predef->response
 					);
 
 					$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
