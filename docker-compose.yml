@@ -25,8 +25,6 @@ services:
       - "6697:6697"
     volumes:
       - "./.docker/data/server:/ircd"
-    environment:
-      IRC: ${IRC:-irc}
     restart: unless-stopped
 
   ircclient:
@@ -39,8 +37,6 @@ services:
     volumes:
       - "./.docker/data/client:/var/opt/thelounge"
       - "./.docker/config/client/config.js:/var/opt/thelounge/config.js"
-    environment:
-      IRC: ${IRC:-irc}
     restart: unless-stopped
 
   bot:
