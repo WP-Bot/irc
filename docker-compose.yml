@@ -1,0 +1,57 @@
+version: '3'
+services:
+  database:
+    image: mariadb:10.3
+    volumes:
+      - "./.docker/data/db:/var/lib/mysql"
+      - "./.docker/config/db:/etc/mysql/conf.d"
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: wpbot
+      MYSQL_USER: wpbot
+      MYSQL_PASSWORD: password
+    restart: unless-stopped
+    command:
+      'mysqld --innodb-flush-method=fsync'
+
+  ircserver:
+    image: oragono/oragono:latest
+    depends_on:
+      - database
+    ports:
+      - "6667:6667"
+      - "6697:6697"
+    volumes:
+      - "./.docker/data/server:/ircd"
+    environment:
+      IRC: ${IRC:-irc}
+    restart: unless-stopped
+
+  ircclient:
+    image: thelounge/thelounge:latest
+    depends_on:
+      - database
+      - ircserver
+    ports:
+      - "9000:9000"
+    volumes:
+      - "./.docker/data/client:/var/opt/thelounge"
+      - "./.docker/config/client/config.js:/var/opt/thelounge/config.js"
+    environment:
+      IRC: ${IRC:-irc}
+    restart: unless-stopped
+
+  bot:
+    build: "./.docker/images/php/"
+    depends_on:
+      - database
+      - ircserver
+    working_dir: /var/www
+    volumes:
+      - ".:/var/www"
+      - "./.docker/config/bot/config.php:/var/www/config.php"
+    restart: unless-stopped
+    command:
+      'php /var/www/contributor-bot.php'
