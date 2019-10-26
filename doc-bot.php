@@ -8,6 +8,7 @@
  */
 class WPBot Extends Bot {
 	private $plugin_details      = array();
+	private $theme_details       = array();
 	public  $predefined_messages = array();
 
 	function __construct() {
@@ -199,6 +200,82 @@ class WPBot Extends Bot {
 				);
 
 				$this->plugin_details[ $msg->message ] = $cache;
+			} else {
+				$message = sprintf(
+					'%s: No results found',
+					$msg->user
+				);
+			}
+		}
+
+		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
+	}
+
+	function theme( $irc, $data ) {
+		$msg = $this->message_split( $data );
+		if ( isset( $this->theme_details[ $msg->message ] ) ) {
+			$message = sprintf(
+				'%s: %s',
+				$msg->user,
+				$this->theme_details[ $msg->message ]
+			);
+		}
+		else {
+			$url    = 'https://wordpress.org/themes/' . str_replace( ' ', '-', $msg->message );
+			$search = 'https://api.wordpress.org/themes/info/1.2/?action=query_themes&request[per_page]=1&request[fields][description]=0&request[search]=';
+
+			if ( preg_match( "/-l\b/i", $msg->message ) ) {
+				$msg->message = trim( str_replace( '-l', '', $msg->message ) );
+				$cache = sprintf(
+					'See a list of themes relating to %s at %s',
+					$msg->message,
+					$search . str_replace( ' ', '+', $msg->message )
+				);
+				$message      = sprintf(
+					'%s: %s',
+					$msg->user,
+					$cache
+				);
+
+				$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
+
+				$this->theme_details[ $msg->message ] = $cache;
+
+				return;
+			}
+
+			$first_pass = get_headers( $url, true );
+
+			if ( isset( $first_pass['Status'] ) && ! stristr( $first_pass['Status'], '404 Not Found' ) ) {
+				$message = sprintf(
+					'%s: %s',
+					$msg->user,
+					$url
+				);
+				$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
+
+				$this->theme_details[ $msg->message ] = $url;
+
+				return;
+			}
+
+			$resp = file_get_contents( $search . str_replace( ' ', '+', $msg->message ) );
+			$result = json_decode( $resp );
+
+			if ( ! isset( $result->themes ) && count( $result->themes ) > 0 ) {
+				$cache = sprintf(
+					'%s - %s',
+					$result->themes[0]->name,
+					$result->themes[0]->homepage
+				);
+
+				$message = sprintf(
+					'%s: %s',
+					$msg->user,
+					$cache
+				);
+
+				$this->theme_details[ $msg->message ] = $cache;
 			} else {
 				$message = sprintf(
 					'%s: No results found',
