@@ -185,7 +185,7 @@ class WPBot Extends Bot {
 			$resp = file_get_contents( $search . str_replace( ' ', '+', $msg->message ) );
 			$result = json_decode( $resp );
 
-			if ( ! isset( $result->plugins ) && count( $result->plugins ) > 0 ) {
+			if ( isset( $result->plugins ) && count( $result->plugins ) > 0 ) {
 				$cache = sprintf(
 					'%s - %s',
 					$result->plugins[0]->name,
