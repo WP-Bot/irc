@@ -265,7 +265,7 @@ class WPBot Extends Bot {
 			if ( isset( $result->themes ) && count( $result->themes ) > 0 ) {
 				$cache = sprintf(
 					'%s - %s',
-					$result->themes[0]->name,
+					html_entity_decode( $result->themes[0]->name ),
 					$result->themes[0]->homepage
 				);
 
