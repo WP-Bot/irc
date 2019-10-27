@@ -188,7 +188,7 @@ class WPBot Extends Bot {
 			if ( isset( $result->plugins ) && count( $result->plugins ) > 0 ) {
 				$cache = sprintf(
 					'%s - %s',
-					$result->plugins[0]->name,
+					html_entity_decode( $result->plugins[0]->name ),
 					$result->plugins[0]->homepage
 				);
 
