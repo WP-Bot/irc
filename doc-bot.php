@@ -262,7 +262,7 @@ class WPBot Extends Bot {
 			$resp = file_get_contents( $search . str_replace( ' ', '+', $msg->message ) );
 			$result = json_decode( $resp );
 
-			if ( ! isset( $result->themes ) && count( $result->themes ) > 0 ) {
+			if ( isset( $result->themes ) && count( $result->themes ) > 0 ) {
 				$cache = sprintf(
 					'%s - %s',
 					$result->themes[0]->name,
