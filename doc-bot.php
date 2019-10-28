@@ -145,7 +145,7 @@ class WPBot Extends Bot {
 		}
 		else {
 			$url    = 'https://wordpress.org/plugins/' . str_replace( ' ', '-', $msg->message );
-			$search = 'https://wordpress.org/plugins/search.php?q=';
+			$search = 'https://api.wordpress.org/plugins/info/1.2/?action=query_plugins&request[per_page]=1&request[fields][description]=0&request[search]=';
 
 			if ( preg_match( "/-l\b/i", $msg->message ) ) {
 				$msg->message = trim( str_replace( '-l', '', $msg->message ) );
@@ -182,20 +182,20 @@ class WPBot Extends Bot {
 				return;
 			}
 
-			$page = file_get_contents( $search . str_replace( ' ', '+', $msg->message ) );
-			preg_match_all( "/plugin-card-top.+?column-name.+?<a.+?href=\"(.+?)\">(.+?)</msi", $page, $matches );
+			$resp = file_get_contents( $search . str_replace( ' ', '+', $msg->message ) );
+			$result = json_decode( $resp );
 
-			if ( ! empty( $matches[1] ) ) {
+			if ( isset( $result->plugins ) && count( $result->plugins ) > 0 ) {
 				$cache = sprintf(
 					'%s - %s',
-					$matches[2][0],
-					$matches[1][0]
+					html_entity_decode( $result->plugins[0]->name ),
+					$result->plugins[0]->homepage
 				);
 
 				$message = sprintf(
 					'%s: %s',
 					$msg->user,
-						$cache
+					$cache
 				);
 
 				$this->plugin_details[ $msg->message ] = $cache;
