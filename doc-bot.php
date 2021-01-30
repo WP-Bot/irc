@@ -7,12 +7,15 @@
  * missing from the channel for whatever reason
  */
 class WPBot Extends Bot {
-	private $plugin_details      = array();
 	private $theme_details       = array();
 	public  $predefined_messages = array();
 
+	private $plugin;
+
 	function __construct() {
 		parent::__construct();
+
+		$this->plugin = new \WPBot\Plugins();
 
 		$this->prepare_predefined_messages();
 	}
@@ -137,75 +140,24 @@ class WPBot Extends Bot {
 
 	function plugin( $irc, $data ) {
 		$msg = $this->message_split( $data );
-		if ( isset( $this->plugin_details[ $msg->message ] ) ) {
+
+		$plugin = $this->plugin->search( $msg->message );
+
+		if ( false === $plugin ) {
 			$message = sprintf(
-				'%s: %s',
-				$msg->user,
-				$this->plugin_details[ $msg->message ]
+				'%s: No results found',
+				$msg->user
 			);
-		}
-		else {
-			$url    = 'https://wordpress.org/plugins/' . str_replace( ' ', '-', $msg->message );
-			$search = 'https://api.wordpress.org/plugins/info/1.2/?action=query_plugins&request[per_page]=1&request[fields][description]=0&request[search]=';
-
-			if ( preg_match( "/-l\b/i", $msg->message ) ) {
-				$msg->message = trim( str_replace( '-l', '', $msg->message ) );
-				$cache = sprintf(
-					'See a list of plugins relating to %s at %s',
-					$msg->message,
-					$search . str_replace( ' ', '+', $msg->message )
-				);
-				$message      = sprintf(
-					'%s: %s',
-					$msg->user,
-					$cache
-				);
-
-				$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
-
-				$this->plugin_details[ $msg->message ] = $cache;
-
-				return;
-			}
-
-			$first_pass = get_headers( $url, true );
-
-			if ( isset( $first_pass['Status'] ) && ! stristr( $first_pass['Status'], '404 Not Found' ) ) {
-				$message = sprintf(
-					'%s: %s',
-					$msg->user,
-					$url
-				);
-				$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
-
-				$this->plugin_details[ $msg->message ] = $url;
-
-				return;
-			}
-
-			$resp = file_get_contents( $search . str_replace( ' ', '+', $msg->message ) );
-			$result = json_decode( $resp );
-
-			if ( isset( $result->plugins ) && count( $result->plugins ) > 0 ) {
-				$cache = sprintf(
-					'%s - %s',
-					html_entity_decode( $result->plugins[0]->name ),
-					$result->plugins[0]->homepage
-				);
-
-				$message = sprintf(
-					'%s: %s',
-					$msg->user,
-					$cache
-				);
-
-				$this->plugin_details[ $msg->message ] = $cache;
-			} else {
-				$message = sprintf(
-					'%s: No results found',
-					$msg->user
-				);
-			}
+		} else {
+			$message = sprintf(
+				'%s: %s - %s',
+				$msg->user,
+				$plugin->name,
+				sprintf(
+					'https://wordpress.org/plugins/%s',
+					$plugin->slug
+				)
+			);
 		}
 
 		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );

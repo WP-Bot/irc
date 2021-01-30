@@ -16,6 +16,7 @@ if ( file_exists( ABSPATH . '/../config.php' ) ) {
 /**
  * Grab dependencies
  */
+require_once ABSPATH . '/includes/Plugins.php';
 require_once ABSPATH . '/doc-bot.php';
 
 
@@ -352,11 +353,11 @@ class Bot {
 					" . $this->db->quote( $msg->message ) . "
 				)
 			" );
-		
+
 			$id = $this->db->lastInsertId();
 
 			$this->add_tell_notification( $id, $msg->user, $time, $data->nick, $msg->message );
-	
+
 			$message = sprintf(
 				'%s: I will relay your message to %s when I see them next.',
 				$data->nick,
