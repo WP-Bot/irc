@@ -299,39 +299,4 @@ class WPBot Extends Bot {
 			$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
 		}
 	}
-
-	function wpvulndb( $irc, $data ) {
-		$msg = $this->message_split( $data );
-
-		$api = file_get_contents( 'https://wpvulndb.com/api/v2/plugins/' . $msg->message );
-		$api = json_decode( $api );
-
-		if ( isset( $api->{ $msg->message } ) ) {
-			$entity = $api->{ $msg->message };
-		}
-
-		if ( ! isset( $entity ) || empty( $entity->vulnerabilities ) ) {
-			$message = sprintf(
-				'%s: %s',
-				$msg->user,
-				'There are no known vulnerabilities for this plugin'
-			);
-		}
-		else {
-			$latest = end( $entity->vulnerabilities );
-
-			$message = sprintf(
-				'%s: %s',
-				$msg->user,
-				sprintf(
-					'%s: %s%s',
-					$latest->vuln_type,
-					$latest->title,
-					( ! empty( $latest->vuln ) ? sprintf( '(Fixed in %s)', $latest->vuln ) : '' )
-				)
-			);
-		}
-
-		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
-	}
 }
