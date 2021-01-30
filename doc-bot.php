@@ -245,22 +245,4 @@ class WPBot Extends Bot {
 
 		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
 	}
-
-	function trac_changeset( $irc, $data ) {
-		$msg = $this->message_split( $data );
-
-		preg_match_all( '/r([0-9]+?)\b/si', $msg->message, $changes );
-
-		foreach( $changes[1] AS $change ) {
-			$url = sprintf( 'https://core.trac.wordpress.org/changeset/%d', $change );
-
-			$message = sprintf(
-				'%s: %s',
-				$msg->user,
-				$url
-			);
-
-			$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
-		}
-	}
 }
