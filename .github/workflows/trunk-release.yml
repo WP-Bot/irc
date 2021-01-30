@@ -41,6 +41,7 @@ jobs:
         uses: BuildPC/rsync-with-ssh-github-actions@master
         with:
           port: 22
+          args: -a
           key: ${{ secrets.DEPLOY_KEY }}
           host: ${{ secrets.DEPLOY_HOST }}
           user: ${{ secrets.DEPLOY_USER }}
