@@ -17,6 +17,7 @@ if ( file_exists( ABSPATH . '/../config.php' ) ) {
  * Grab dependencies
  */
 require_once ABSPATH . '/includes/Plugins.php';
+require_once ABSPATH . '/includes/Themes.php';
 require_once ABSPATH . '/doc-bot.php';
 
 
