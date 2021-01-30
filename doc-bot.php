@@ -234,15 +234,4 @@ class WPBot Extends Bot {
 
 		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
 	}
-
-	function donthack( $irc, $data ) {
-		$msg = $this->message_split( $data );
-
-		$message = sprintf(
-			'%s: http://codex.wordpress.org/images/b/b3/donthack.jpg',
-			$msg->user
-		);
-
-		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
-	}
 }
