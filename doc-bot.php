@@ -121,24 +121,6 @@ class WPBot Extends Bot {
 		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
 	}
 
-	function codex( $irc, $data ) {
-		$msg = $this->message_split( $data );
-
-		$google = $this->google_result( $msg->message . ' site:codex.wordpress.org' );
-
-		if ( preg_match( '/codex\.wordpress\.org\/(.{2,5}:).+?/i', $google, $language ) ) {
-			$google = str_ireplace( $language[1], '', $google );
-		}
-
-		$message = sprintf(
-			'%s: %s',
-			$msg->user,
-			$google
-		);
-
-		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
-	}
-
 	function plugin( $irc, $data ) {
 		$msg = $this->message_split( $data );
 
