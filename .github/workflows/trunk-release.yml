@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: PHP Syntax check
-        working-directory: ./src/php
+        working-directory: ./
         run: find . \( -name '*.php' \) -exec php -lf {} \;
 
       - name: Set up composer
