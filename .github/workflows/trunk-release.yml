@@ -1,0 +1,49 @@
+# Automatically create a release whenever a version-tag is created.
+name: Publish release
+
+on:
+  repository_dispatch:
+    types: trigger-deploy
+
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    name: Create release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v2
+
+      - name: PHP Syntax check
+        working-directory: ./src/php
+        run: find . \( -name '*.php' \) -exec php -lf {} \;
+
+      - name: Set up composer
+        working-directory: ./
+        run: composer install
+
+      - name: Remove development files
+        working-directory: ./
+        run: |
+          rm -rf .docker
+          rm -rf .editorconfig
+          rm -rf .github
+          rm -rf composer.*
+          rm -rf docker-compose.yml
+          rm -rf config-example.php
+
+      # rsync code changes, and trigger a force-reload of the PHP process the bot runs on.
+      - name: Push release
+        uses: BuildPC/rsync-with-ssh-github-actions@master
+        with:
+          port: 22
+          key: ${{ secrets.DEPLOY_KEY }}
+          host: ${{ secrets.DEPLOY_HOST }}
+          user: ${{ secrets.DEPLOY_USER }}
+          destination: ${{ secrets.DEPLOY_PATH }}
+          ssh_after: |
+            killall php
