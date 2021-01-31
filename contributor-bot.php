@@ -18,6 +18,7 @@ if ( file_exists( ABSPATH . '/../config.php' ) ) {
  */
 require_once ABSPATH . '/includes/Plugins.php';
 require_once ABSPATH . '/includes/Themes.php';
+require_once ABSPATH . '/includes/News.php';
 require_once ABSPATH . '/doc-bot.php';
 
 
@@ -38,6 +39,8 @@ class Bot {
 	private $spam_auto_ban      = 2;
 	private $spam_lines         = 5;
 	private $spam_lines_seconds = 3;
+
+	private $news;
 
 	private $mtime = array(
 		'doc-bot'         => null,
@@ -84,6 +87,8 @@ class Bot {
 		if ( defined( 'SPAM_LINES_SECONDS' ) ) {
 			$this->spam_lines_seconds = SPAM_LINES_SECONDS;
 		}
+
+		$this->news = new \WPBot\News();
 
 		$this->prepare_tell_notifications();
 	}
@@ -774,6 +779,20 @@ class Bot {
 			}
 		}
 	}
+
+	function look_for_news( $irc ) {
+		$has_news = $this->news->get_articles();
+
+		if ( $has_news ) {
+			$message = sprintf(
+				chr(2) . 'WordPress News:' . chr(2) .' %s - %s',
+				$this->news->get_latest_headline(),
+				$this->news->get_latest_url()
+			);
+
+			$irc->message( SMARTIRC_TYPE_CHANNEL, '#WordPress', $message );
+		}
+	}
 }
 
 /**
@@ -842,6 +861,7 @@ $irc->registerTimeHandler( 600000, $bot, 'prepare_predefined_messages' );
  */
 $irc->registerTimeHandler( 60000, $bot, 'maybe_unmute_users' );
 $irc->registerTimeHandler( 60000, $bot, 'maybe_self_update' );
+$irc->registerTimeHandler( 300000, $bot, 'look_for_news' ); // Look for news every 5 minutes.
 
 /**
  * Start the connection to an IRC server
