@@ -135,7 +135,7 @@ class WPBot Extends Bot {
 			$message = sprintf(
 				'%s: %s - %s',
 				$msg->user,
-				$plugin->name,
+				htmlspecialchars_decode( $plugin->name ),
 				sprintf(
 					'https://wordpress.org/plugins/%s',
 					$plugin->slug
@@ -160,7 +160,7 @@ class WPBot Extends Bot {
 			$message = sprintf(
 				'%s: %s - %s',
 				$msg->user,
-				$theme->name,
+				htmlspecialchars_decode( $theme->name ),
 				sprintf(
 					'https://wordpress.org/themes/%s',
 					$theme->slug
