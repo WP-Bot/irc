@@ -429,7 +429,7 @@ class Bot {
 		$message = sprintf(
 			'Welcome to #WordPress, %s. Please review our guidelines available at %s, and if you at any time see behavior you feel is inappropriate, you may utilize the %s command, either in the channel or in a private message to notify a Support Team member.',
 			$data->nick,
-			'https://codex.wordpress.org/IRC/Channel_Guidelines',
+			'https://wordpress.org/support/guidelines/irc/',
 			chr(2) . '.ops' . chr(2)
 		);
 
@@ -760,6 +760,7 @@ class Bot {
 	}
 
 	function maybe_self_update( $irc ) {
+		var_dump( $this->mtime );
 		foreach ( $this->mtime as $file ) {
 			// Check if file modification time differs.
 			if ( filemtime( __DIR__ . '/' . $file . '.php' ) !== $this->mtime[ $file ] ) {
