@@ -40,8 +40,8 @@ class Bot {
 	private $spam_lines_seconds = 3;
 
 	private $mtime = array(
-		'doc-bot',
-		'contributor-bot',
+		'doc-bot'         => null,
+		'contributor-bot' => null,
 	);
 
 	/**
@@ -62,7 +62,10 @@ class Bot {
 		/**
 		 * Set modification time to allow for self updating when needed.
 		 */
-		foreach ( $this->mtime as $file ) {
+		foreach ( $this->mtime as $file => $mtime ) {
+			if ( empty( $file ) ) {
+				continue;
+			}
 			$this->mtime[ $file ] = filemtime( __DIR__ . '/' . $file . '.php' );
 		}
 
@@ -760,10 +763,13 @@ class Bot {
 	}
 
 	function maybe_self_update( $irc ) {
-		var_dump( $this->mtime );
-		foreach ( $this->mtime as $file ) {
+		foreach ( $this->mtime as $file => $mtime ) {
+			if ( empty( $file ) ) {
+				continue;
+			}
+
 			// Check if file modification time differs.
-			if ( filemtime( __DIR__ . '/' . $file . '.php' ) !== $this->mtime[ $file ] ) {
+			if ( filemtime( __DIR__ . '/' . $file . '.php' ) !== $mtime ) {
 				exit;
 			}
 		}
