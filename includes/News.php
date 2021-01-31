@@ -20,6 +20,8 @@ class News {
 		} else {
 			$this->feed_url = 'https://wordpress.org/news/feed/';
 		}
+
+		$this->get_articles();
 	}
 
 	public function get_latest() {
