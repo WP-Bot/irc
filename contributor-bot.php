@@ -39,6 +39,11 @@ class Bot {
 	private $spam_lines         = 5;
 	private $spam_lines_seconds = 3;
 
+	private $mtime = array(
+		'doc-bot',
+		'contributor-bot',
+	);
+
 	/**
 	 * The class construct prepares our functions and database connections
 	 */
@@ -53,6 +58,13 @@ class Bot {
 		 * This is done because we run a bit of regex over it to identify words for consistency
 		 */
 		$this->appreciation = str_replace( ',', '|', strtolower( APPRECIATION ) );
+
+		/**
+		 * Set modification time to allow for self updating when needed.
+		 */
+		foreach ( $this->mtime as $file ) {
+			$this->mtime[ $file ] = filemtime( __DIR__ . '/' . $file . '.php' );
+		}
 
 		/**
 		 * Add spam protection config overrides, if they are set.
@@ -746,6 +758,15 @@ class Bot {
 			}
 		}
 	}
+
+	function maybe_self_update( $irc ) {
+		foreach ( $this->mtime as $file ) {
+			// Check if file modification time differs.
+			if ( filemtime( __DIR__ . '/' . $file . '.php' ) !== $this->mtime[ $file ] ) {
+				exit;
+			}
+		}
+	}
 }
 
 /**
@@ -813,7 +834,7 @@ $irc->registerTimeHandler( 600000, $bot, 'prepare_predefined_messages' );
  * Scheduled task runners
  */
 $irc->registerTimeHandler( 60000, $bot, 'maybe_unmute_users' );
-
+$irc->registerTimeHandler( 60000, $bot, 'maybe_self_update' );
 
 /**
  * Start the connection to an IRC server
