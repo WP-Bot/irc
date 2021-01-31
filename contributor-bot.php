@@ -861,7 +861,7 @@ $irc->registerTimeHandler( 600000, $bot, 'prepare_predefined_messages' );
  */
 $irc->registerTimeHandler( 60000, $bot, 'maybe_unmute_users' );
 $irc->registerTimeHandler( 60000, $bot, 'maybe_self_update' );
-$irc->registerTimeHandler( 300000, $bot, 'look_for_news' ); // Look for news every 5 minutes.
+$irc->registerTimeHandler( 900000, $bot, 'look_for_news' ); // Look for news every 5 minutes.
 
 /**
  * Start the connection to an IRC server
