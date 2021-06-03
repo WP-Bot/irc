@@ -813,9 +813,6 @@ class WPBot extends \Net_SmartIRC {
 	function event_903( $data ) {
 		if ( $this->sasl_auth ) {
 			$this->send( 'CAP END', SMARTIRC_CRITICAL );
-
-			// Provide basic nickname actions.
-			$this->login( BOTNICK, BOTNAME . ' - version ' . BOTVERSION, 0, BOTNICK, BOTPASS );
 		}
 	}
 }
