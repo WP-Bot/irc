@@ -772,6 +772,9 @@ class WPBot extends \Net_SmartIRC {
 		}
 	}
 
+	/**
+	 * Send a SASL authentication intent ot the server.
+	 */
 	function sendSASL() {
 		// Declare that we are authenticating through SASL.
 		$this->sasl_auth = true;
@@ -792,6 +795,11 @@ class WPBot extends \Net_SmartIRC {
 		$this->send('USER ' . $this->_username . ' 0 ' . SMARTIRC_UNUSED . ' :' . $this->_realname, SMARTIRC_CRITICAL );
 	}
 
+	/**
+	 * Check if an authentication action is initiated and declare our preferred method.
+	 *
+	 * @param $data
+	 */
 	function event_cap( $data ) {
 		// Check for capability declaration.
 		if ( 'sasl' === trim( $data->message ) ) {
@@ -802,6 +810,11 @@ class WPBot extends \Net_SmartIRC {
 		}
 	}
 
+	/**
+	 * Send the authentication token if required.
+	 *
+	 * @param $data
+	 */
 	function event_authenticate( $data ) {
 		// Send authentication code.
 		if ( $this->sasl_auth ) {
@@ -810,10 +823,24 @@ class WPBot extends \Net_SmartIRC {
 		}
 	}
 
+	/**
+	 * Identify a successful SASL authentication and close the authentication process.
+	 *
+	 * @param $data
+	 */
 	function event_903( $data ) {
 		if ( $this->sasl_auth ) {
 			$this->send( 'CAP END', SMARTIRC_CRITICAL );
+		}
+	}
 
+	/**
+	 * Conditionally join channels once the connection procedures are all completed after a SASL authentication.
+	 *
+	 * @param $data
+	 */
+	function event_376( $data ) {
+		if ( $this->sasl_auth ) {
 			$this->join( explode( ',', IRC_CHANNELS ) );
 		}
 	}
