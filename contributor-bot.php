@@ -103,8 +103,8 @@ if ( defined( 'USE_SASL' ) && USE_SASL ) {
 } else {
 	$irc->connect( IRC_NETWORK, IRC_PORT );
 	$irc->login( BOTNICK, BOTNAME . ' - version ' . BOTVERSION, 0, BOTNICK, BOTPASS );
+	$irc->join( array( IRC_CHANNELS ) );
 }
-$irc->join( array( IRC_CHANNELS ) );
 $irc->listen();
 
 /**

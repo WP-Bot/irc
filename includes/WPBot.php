@@ -813,6 +813,8 @@ class WPBot extends \Net_SmartIRC {
 	function event_903( $data ) {
 		if ( $this->sasl_auth ) {
 			$this->send( 'CAP END', SMARTIRC_CRITICAL );
+
+			$this->join( array( IRC_CHANNELS ) );
 		}
 	}
 }
