@@ -776,6 +776,15 @@ class WPBot extends \Net_SmartIRC {
 		// Declare that we are authenticating through SASL.
 		$this->sasl_auth = true;
 
+		$this->_nick = str_replace( ' ', '', BOTNICK );
+		$this->_realname = BOTNAME . ' - version ' . BOTVERSION;
+
+		if ( BOTNICK !== null ) {
+			$this->_username = str_replace(' ', '', BOTNICK );
+		} else {
+			$this->_username = str_replace( ' ', '', exec( 'whoami' ) );
+		}
+
 		// Send SASL authentication intent.
 		$this->send( 'CAP REQ :sasl', SMARTIRC_CRITICAL );
 
