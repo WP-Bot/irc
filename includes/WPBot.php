@@ -275,7 +275,7 @@ class WPBot extends \Net_SmartIRC {
 		$this->log_event( 'join', $irc, $data );
 
 		if ( $data->nick == $irc->_nick ) {
-			$irc->message( SMARTIRC_TYPE_QUERY, 'ChanServ', 'op #WordPress ' . $irc->_nick );
+			$this->message( SMARTIRC_TYPE_QUERY, 'ChanServ', 'op #WordPress ' . $irc->_nick, SMARTIRC_CRITICAL );
 		}
 
 		$this->tell( $irc, $data );
@@ -285,7 +285,7 @@ class WPBot extends \Net_SmartIRC {
 		$message = sprintf( 'For WPBot Help, see %s',
 			HELP_URL
 		);
-		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
+		$this->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message, SMARTIRC_CRITICAL );
 	}
 
 	function prepare_tell_notifications() {
@@ -381,7 +381,7 @@ class WPBot extends \Net_SmartIRC {
 			);
 		}
 
-		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
+		$this->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message, SMARTIRC_CRITICAL );
 	}
 
 	function tell( $irc, $data ) {
@@ -398,7 +398,7 @@ class WPBot extends \Net_SmartIRC {
 
 				$unset[] = $tell->id;
 
-				$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
+				$this->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message, SMARTIRC_CRITICAL );
 			}
 
 			unset( $this->tell[ $data->nick ] );
@@ -428,7 +428,7 @@ class WPBot extends \Net_SmartIRC {
 			chr(2) . '.ops' . chr(2)
 		);
 
-		$irc->message( SMARTIRC_TYPE_NOTICE, $data->nick, $message );
+		$this->message( SMARTIRC_TYPE_NOTICE, $data->nick, $message, SMARTIRC_CRITICAL );
 	}
 
 	function request_ops( $irc, $data ) {
@@ -486,7 +486,7 @@ class WPBot extends \Net_SmartIRC {
 
 		$reply = "Your request for an operator to look into the current channel situation has been forwarded to the WordPress Support Team.";
 
-		$irc->message( SMARTIRC_TYPE_QUERY, $data->nick, $reply );
+		$this->message( SMARTIRC_TYPE_QUERY, $data->nick, $reply, SMARTIRC_CRITICAL );
 	}
 
 
@@ -777,7 +777,7 @@ class WPBot extends \Net_SmartIRC {
 				$this->news->get_latest_url()
 			);
 
-			$irc->message( SMARTIRC_TYPE_CHANNEL, '#WordPress', $message );
+			$this->message( SMARTIRC_TYPE_CHANNEL, '#WordPress', $message, SMARTIRC_CRITICAL );
 		}
 	}
 
@@ -898,7 +898,7 @@ class WPBot extends \Net_SmartIRC {
 						$predef->response
 					);
 
-					$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
+					$this->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message, SMARTIRC_CRITICAL );
 
 					return true;
 				}
@@ -969,7 +969,7 @@ class WPBot extends \Net_SmartIRC {
 			);
 		}
 
-		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
+		$this->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message, SMARTIRC_CRITICAL );
 	}
 
 	function plugin( $irc, $data ) {
@@ -994,7 +994,7 @@ class WPBot extends \Net_SmartIRC {
 			);
 		}
 
-		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
+		$this->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message, SMARTIRC_CRITICAL );
 	}
 
 	function theme( $irc, $data ) {
@@ -1019,7 +1019,7 @@ class WPBot extends \Net_SmartIRC {
 			);
 		}
 
-		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
+		$this->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message, SMARTIRC_CRITICAL );
 	}
 
 	function google( $irc, $data ) {
@@ -1034,7 +1034,7 @@ class WPBot extends \Net_SmartIRC {
 			$google
 		);
 
-		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
+		$this->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message, SMARTIRC_CRITICAL );
 	}
 
 	function lmgtfy( $irc, $data ) {
@@ -1048,7 +1048,7 @@ class WPBot extends \Net_SmartIRC {
 			$query
 		);
 
-		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
+		$this->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message, SMARTIRC_CRITICAL );
 	}
 
 	function language( $irc, $data ) {
@@ -1060,7 +1060,7 @@ class WPBot extends \Net_SmartIRC {
 			$data->channel
 		);
 
-		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
+		$this->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message, SMARTIRC_CRITICAL );
 	}
 
 	function count( $irc, $data ) {
@@ -1071,7 +1071,7 @@ class WPBot extends \Net_SmartIRC {
 			$counter
 		);
 
-		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
+		$this->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message, SMARTIRC_CRITICAL );
 	}
 
 	function md5( $irc, $data ) {
@@ -1083,6 +1083,6 @@ class WPBot extends \Net_SmartIRC {
 			md5( $msg->message )
 		);
 
-		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
+		$this->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message, SMARTIRC_CRITICAL );
 	}
 }
