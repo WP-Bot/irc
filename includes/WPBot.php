@@ -795,7 +795,7 @@ class WPBot extends \Net_SmartIRC {
 		}
 
 		if ( ! empty( $missing_channels ) ) {
-			$this->join( $missing_channels );
+			$this->join( $missing_channels, null, SMARTIRC_CRITICAL );
 		}
 	}
 
@@ -868,7 +868,7 @@ class WPBot extends \Net_SmartIRC {
 	 */
 	function event_376( $data ) {
 		if ( $this->sasl_auth ) {
-			$this->join( explode( ',', IRC_CHANNELS ) );
+			$this->join( explode( ',', IRC_CHANNELS ), null, SMARTIRC_CRITICAL  );
 		}
 	}
 
