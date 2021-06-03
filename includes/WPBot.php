@@ -804,10 +804,8 @@ class WPBot extends \Net_SmartIRC {
 
 	function event_authenticate( $data ) {
 		// Send authentication code.
-		if ( 'AUTHENTICATE +' === trim( $data->message ) ) {
-			if ( $this->sasl_auth ) {
-				$this->send( base64_encode( sprintf( '%s:%s', BOTNICK, BOTPASS ) ), SMARTIRC_CRITICAL );
-			}
+		if ( $this->sasl_auth ) {
+			$this->send( 'AUTHENTICATE ' . base64_encode( sprintf( '%s:%s', BOTNICK, BOTPASS ) ), SMARTIRC_CRITICAL );
 		}
 	}
 
