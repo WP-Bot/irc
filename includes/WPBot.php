@@ -779,11 +779,8 @@ class WPBot extends \Net_SmartIRC {
 		// Send SASL authentication intent.
 		$this->send( 'CAP REQ :sasl', SMARTIRC_CRITICAL );
 
-		// Provide basic nickname actions.
-		$this->login( BOTNICK, BOTNAME . ' - version ' . BOTVERSION, 0, BOTNICK, BOTPASS );
-
-		// End authentication cycle.
-		$this->send( 'CAP END', SMARTIRC_CRITICAL );
+		$this->send('NICK ' . $this->_nick, SMARTIRC_CRITICAL );
+		$this->send('USER ' . $this->_username . ' 0 ' . SMARTIRC_UNUSED . ' :' . $this->_realname, SMARTIRC_CRITICAL );
 	}
 
 	function event_cap( $data ) {
@@ -808,6 +805,9 @@ class WPBot extends \Net_SmartIRC {
 	function event_903( $data ) {
 		if ( $this->sasl_auth ) {
 			$this->send( 'CAP END', SMARTIRC_CRITICAL );
+
+			// Provide basic nickname actions.
+			$this->login( BOTNICK, BOTNAME . ' - version ' . BOTVERSION, 0, BOTNICK, BOTPASS );
 		}
 	}
 }
