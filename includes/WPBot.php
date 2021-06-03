@@ -24,6 +24,11 @@ class WPBot extends \Net_SmartIRC {
 
 	private $sasl_auth = false;
 
+	public  $predefined_messages = array();
+
+	private $plugin;
+	private $theme;
+
 	/**
 	 * The class construct prepares our functions and database connections
 	 */
@@ -66,6 +71,10 @@ class WPBot extends \Net_SmartIRC {
 		}
 
 		$this->news = new \WPBot\News();
+		$this->plugin = new \WPBot\Plugins();
+		$this->theme = new \WPBot\Themes();
+
+		$this->prepare_predefined_messages();
 
 		$this->prepare_tell_notifications();
 	}
@@ -861,5 +870,219 @@ class WPBot extends \Net_SmartIRC {
 		if ( $this->sasl_auth ) {
 			$this->join( explode( ',', IRC_CHANNELS ) );
 		}
+	}
+
+	function prepare_predefined_messages() {
+		$wpbot_api = curl_init( 'https://wp-bot.net/wp-json/wpbot/v1/commands' );
+		curl_setopt( $wpbot_api, CURLOPT_RETURNTRANSFER, true );
+		curl_setopt( $wpbot_api, CURLOPT_SSL_VERIFYPEER, false );
+
+		$result = curl_exec( $wpbot_api );
+		curl_close( $wpbot_api );
+
+		$this->predefined_messages = json_decode( $result );
+	}
+
+	function is_predefined_message( $irc, $data ) {
+		if ( $data->message[0] == '.' || $data->message[0] == '!' ) {
+			foreach ( $this->predefined_messages AS $predef ) {
+				if ( empty( $predef->command ) ) {
+					continue;
+				}
+				if ( preg_match( sprintf( "/^(!|\.)%s\b/i", $predef->command ), $data->message ) ) {
+					$msg = Tools::message_split( $data );
+
+					$message = sprintf(
+						'%s: %s',
+						$msg->user,
+						$predef->response
+					);
+
+					$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
+
+					return true;
+				}
+			}
+		}
+	}
+
+	function google_result( $string ) {
+		$search = 'http://www.google.com/search?q=%s&btnI';
+
+		$string = urlencode( $string );
+		$search = str_replace( '%s', $string , $search );
+
+		$headers = get_headers( $search, true );
+		return $headers['Location'][1];
+	}
+
+	function developer( $irc, $data ) {
+		$msg = Tools::message_split( $data );
+		$string = trim( $msg->message );
+
+		$search = 'https://developer.wordpress.org/?s=%s';
+		$lookup = false;
+		if ( stristr( $string, '-f' ) ) {
+			$lookup = true;
+			$string = str_replace( '-f', '', $string );
+			$search .= '&post_type%5B%5D=wp-parser-function';
+		}
+		if ( stristr( $string, '-h' ) ) {
+			$lookup = true;
+			$string = str_replace( '-h', '', $string );
+			$search .= '&post_type%5B%5D=wp-parser-hook';
+		}
+		if ( stristr( $string, '-c' ) ) {
+			$lookup = true;
+			$string = str_replace( '-c', '', $string );
+			$search .= '&post_type%5B%5D=wp-parser-class';
+		}
+		if ( stristr( $string, '-m' ) ) {
+			$lookup = true;
+			$string = str_replace( '-m', '', $string );
+			$search .= '&post_type%5B%5D=wp-parser-method';
+		}
+
+		if ( ! $lookup ) {
+			$search .= '&post_type%5B%5D=wp-parser-function';
+		}
+
+		$string = trim( $string );
+		$string = str_replace( array( ' ' ), array( '+' ), $string );
+		$search = str_replace( '%s', $string , $search );
+
+		$headers = get_headers( $search, true );
+
+		if ( ! isset( $headers['Location'] ) || empty( $headers['Location'] ) ) {
+			$message = sprintf(
+				'%s: No exact match found for \'%s\' - See the full set of results at %s',
+				$msg->user,
+				$string,
+				$search
+			);
+		}
+		else {
+			$message = sprintf(
+				'%s: %s',
+				$msg->user,
+				$headers['Location']
+			);
+		}
+
+		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
+	}
+
+	function plugin( $irc, $data ) {
+		$msg = Tools::message_split( $data );
+
+		$plugin = $this->plugin->search( $msg->message );
+
+		if ( false === $plugin ) {
+			$message = sprintf(
+				'%s: No results found',
+				$msg->user
+			);
+		} else {
+			$message = sprintf(
+				'%s: %s - %s',
+				$msg->user,
+				htmlspecialchars_decode( $plugin->name ),
+				sprintf(
+					'https://wordpress.org/plugins/%s',
+					$plugin->slug
+				)
+			);
+		}
+
+		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
+	}
+
+	function theme( $irc, $data ) {
+		$msg = Tools::message_split( $data );
+
+		$theme = $this->theme->search( $msg->message );
+
+		if ( false === $theme ) {
+			$message = sprintf(
+				'%s: No results found',
+				$msg->user
+			);
+		} else {
+			$message = sprintf(
+				'%s: %s - %s',
+				$msg->user,
+				htmlspecialchars_decode( $theme->name ),
+				sprintf(
+					'https://wordpress.org/themes/%s',
+					$theme->slug
+				)
+			);
+		}
+
+		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
+	}
+
+	function google( $irc, $data ) {
+		$msg = Tools::message_split( $data );
+
+		$google = $this->google_result( $msg->message );
+
+		$message = sprintf(
+			'%s: Google result for %s - %s',
+			$msg->user,
+			$msg->message,
+			$google
+		);
+
+		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
+	}
+
+	function lmgtfy( $irc, $data ) {
+		$msg = Tools::message_split( $data );
+
+		$query = urlencode( $msg->message );
+
+		$message = sprintf(
+			'%s: http://lmgtfy.com/?q=%s',
+			$msg->user,
+			$query
+		);
+
+		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
+	}
+
+	function language( $irc, $data ) {
+		$msg = Tools::message_split( $data );
+
+		$message = sprintf(
+			'%s: Please help us keep %s a family friendly room, and avoid using foul language.',
+			$msg->user,
+			$data->channel
+		);
+
+		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
+	}
+
+	function count( $irc, $data ) {
+		$counter = file_get_contents( 'https://wordpress.org/download/counter/?ajaxupdate=1' );
+
+		$message = sprintf(
+			'The latest version of WordPress has been downloaded %s times',
+			$counter
+		);
+
+		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
+	}
+
+	function md5( $irc, $data ) {
+		$msg = Tools::message_split( $data );
+
+		$message = sprintf(
+			'%s: %s',
+			$msg->user,
+			md5( $msg->message )
+		);
+
+		$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
 	}
 }

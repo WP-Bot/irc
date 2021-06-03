@@ -23,13 +23,11 @@ require_once ABSPATH . '/includes/Plugins.php';
 require_once ABSPATH . '/includes/Themes.php';
 require_once ABSPATH . '/includes/News.php';
 require_once ABSPATH . '/includes/Tools.php';
-require_once ABSPATH . '/includes/DocBot.php';
 require_once ABSPATH . '/includes/WPBot.php';
 
 /**
  * Instantiate our bot class and the SmartIRC framework
  */
-$bot = new DocBot();
 $irc = new WPBot();
 
 /**
@@ -42,12 +40,12 @@ $irc->setChannelSyncing( true ); // Channel sync allows us to get user details w
 /**
  * Spam protection
  */
-$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '/./', $bot, 'spam_protection' );
+$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '/./', $irc, 'spam_protection' );
 
 /**
  * Garbage collection for the spam protection.
  */
-$irc->registerTimeHandler( 100000, $bot, 'spam_protection_gc' );
+$irc->registerTimeHandler( 100000, $irc, 'spam_protection_gc' );
 
 /**
  * Set up hooks for events to trigger on in the WPBot class.
@@ -72,21 +70,21 @@ $irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '^(!|\.)h(elp)?\b', $irc, 'h
 /**
  * DocBot class hooks
  */
-$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '^(!|\.)d(eveloper)?\b', $bot, 'developer' );
-$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '^(!|\.)c(odex)?\b', $bot, 'developer' );
-$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '^(!|\.)p(lugin)?\b', $bot, 'plugin' );
-$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '^(!|\.)t(heme)?\b', $bot, 'theme' );
-$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '^(!|\.)g(oogle)?\b', $bot, 'google' );
-$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '^(!|\.)l(mgtfy)?\b', $bot, 'lmgtfy' );
-$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '^(!|\.)language\b', $bot, 'language' );
-$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '^(!|\.)count\b', $bot, 'count' );
-$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '^(!|\.)md5\b', $bot, 'md5' );
+$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '^(!|\.)d(eveloper)?\b', $irc, 'developer' );
+$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '^(!|\.)c(odex)?\b', $irc, 'developer' );
+$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '^(!|\.)p(lugin)?\b', $irc, 'plugin' );
+$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '^(!|\.)t(heme)?\b', $irc, 'theme' );
+$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '^(!|\.)g(oogle)?\b', $irc, 'google' );
+$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '^(!|\.)l(mgtfy)?\b', $irc, 'lmgtfy' );
+$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '^(!|\.)language\b', $irc, 'language' );
+$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '^(!|\.)count\b', $irc, 'count' );
+$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '^(!|\.)md5\b', $irc, 'md5' );
 
 /**
  * DocBot common replies
  */
-$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '/./', $bot, 'is_predefined_message' );
-$irc->registerTimeHandler( 600000, $bot, 'prepare_predefined_messages' );
+$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '/./', $irc, 'is_predefined_message' );
+$irc->registerTimeHandler( 600000, $irc, 'prepare_predefined_messages' );
 
 /**
  * Scheduled task runners
