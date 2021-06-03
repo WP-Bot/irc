@@ -50,23 +50,24 @@ $irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '/./', $bot, 'spam_protectio
 $irc->registerTimeHandler( 100000, $bot, 'spam_protection_gc' );
 
 /**
- * Set up hooks for events to trigger on
+ * Set up hooks for events to trigger on in the WPBot class.
  */
-$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '/./', $bot, 'channel_query' );
-$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '/^(!|\.)tell\b/', $bot, 'add_tell' );
-$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '/^(!|\.)ops/', $bot, 'request_ops' );
-$irc->registerActionHandler( SMARTIRC_TYPE_QUERY, '/^(!|\.)ops/', $bot, 'request_ops' );
-$irc->registerActionHandler( SMARTIRC_TYPE_ACTION, '/./', $bot, 'channel_query' );
-$irc->registerActionHandler( SMARTIRC_TYPE_KICK, '/./', $bot, 'log_kick' );
-$irc->registerActionHandler( SMARTIRC_TYPE_PART, '/./', $bot, 'log_part' );
-$irc->registerActionHandler( SMARTIRC_TYPE_QUIT, '/./', $bot, 'log_quit' );
-$irc->registerActionHandler( SMARTIRC_TYPE_JOIN, '/(.*)/', $bot, 'log_join' );
-$irc->registerActionHandler( SMARTIRC_TYPE_JOIN, '/(.*)/', $bot, 'new_user_guidelines' );
+$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '/./', $irc, 'channel_query' );
+$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '/^(!|\.)tell\b/', $irc, 'add_tell' );
+$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '/^(!|\.)ops/', $irc, 'request_ops' );
+$irc->registerActionHandler( SMARTIRC_TYPE_QUERY, '/^(!|\.)ops/', $irc, 'request_ops' );
+$irc->registerActionHandler( SMARTIRC_TYPE_ACTION, '/./', $irc, 'channel_query' );
+$irc->registerActionHandler( SMARTIRC_TYPE_KICK, '/./', $irc, 'log_kick' );
+$irc->registerActionHandler( SMARTIRC_TYPE_PART, '/./', $irc, 'log_part' );
+$irc->registerActionHandler( SMARTIRC_TYPE_QUIT, '/./', $irc, 'log_quit' );
+$irc->registerActionHandler( SMARTIRC_TYPE_JOIN, '/(.*)/', $irc, 'log_join' );
+$irc->registerActionHandler( SMARTIRC_TYPE_JOIN, '/(.*)/', $irc, 'new_user_guidelines' );
+$irc->registerActionHandler( SMARTIRC_TYPE_QUERY, '/^rejoin$/', $irc, 'maybe_rejoin_channels' );
 
 /**
  * Generic commands associated purely with WPBot
  */
-$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '^(!|\.)h(elp)?\b', $bot, 'help_cmd' );
+$irc->registerActionHandler( SMARTIRC_TYPE_CHANNEL, '^(!|\.)h(elp)?\b', $irc, 'help_cmd' );
 
 /**
  * DocBot class hooks
@@ -90,9 +91,10 @@ $irc->registerTimeHandler( 600000, $bot, 'prepare_predefined_messages' );
 /**
  * Scheduled task runners
  */
-$irc->registerTimeHandler( 60000, $bot, 'maybe_unmute_users' );
-$irc->registerTimeHandler( 60000, $bot, 'maybe_self_update' );
-$irc->registerTimeHandler( 900000, $bot, 'look_for_news' ); // Look for news every 5 minutes.
+$irc->registerTimeHandler( 60000, $irc, 'maybe_unmute_users' );
+$irc->registerTimeHandler( 60000, $irc, 'maybe_self_update' );
+$irc->registerTimeHandler( 900000, $irc, 'look_for_news' ); // Look for news every 5 minutes.
+$irc->registerTimeHandler( 900000, $irc, 'maybe_rejoin_channels' );
 
 /**
  * Start the connection to an IRC server

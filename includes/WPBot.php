@@ -773,6 +773,24 @@ class WPBot extends \Net_SmartIRC {
 	}
 
 	/**
+	 * Loop over the channels we are expected to be in, and rejoin any that are missing.
+	 */
+	function maybe_rejoin_channels() {
+		$channels = explode( ',', IRC_CHANNELS );
+		$missing_channels = array();
+
+		foreach ( $channels as $channel ) {
+			if ( ! in_array( $channel, $this->_channels ) ) {
+				$missing_channels[] = $channel;
+			}
+		}
+
+		if ( ! empty( $missing_channels ) ) {
+			$this->join( $missing_channels );
+		}
+	}
+
+	/**
 	 * Send a SASL authentication intent ot the server.
 	 */
 	function sendSASL() {
