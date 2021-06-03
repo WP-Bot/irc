@@ -1,20 +1,14 @@
 <?php
 
-/**
- * Class DocBot
- *
- * Replace some frequently used doc-bot commands if the bot is
- * missing from the channel for whatever reason
- */
-class WPBot Extends Bot {
+namespace WPBot;
+
+class DocBot {
 	public  $predefined_messages = array();
 
 	private $plugin;
 	private $theme;
 
 	function __construct() {
-		parent::__construct();
-
 		$this->plugin = new \WPBot\Plugins();
 		$this->theme = new \WPBot\Themes();
 
@@ -39,12 +33,12 @@ class WPBot Extends Bot {
 					continue;
 				}
 				if ( preg_match( sprintf( "/^(!|\.)%s\b/i", $predef->command ), $data->message ) ) {
-					$msg = $this->message_split( $data );
+					$msg = Tools::message_split( $data );
 
 					$message = sprintf(
-							'%s: %s',
-							$msg->user,
-							$predef->response
+						'%s: %s',
+						$msg->user,
+						$predef->response
 					);
 
 					$irc->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message );
@@ -66,7 +60,7 @@ class WPBot Extends Bot {
 	}
 
 	function developer( $irc, $data ) {
-		$msg = $this->message_split( $data );
+		$msg = Tools::message_split( $data );
 		$string = trim( $msg->message );
 
 		$search = 'https://developer.wordpress.org/?s=%s';
@@ -122,7 +116,7 @@ class WPBot Extends Bot {
 	}
 
 	function plugin( $irc, $data ) {
-		$msg = $this->message_split( $data );
+		$msg = Tools::message_split( $data );
 
 		$plugin = $this->plugin->search( $msg->message );
 
@@ -147,7 +141,7 @@ class WPBot Extends Bot {
 	}
 
 	function theme( $irc, $data ) {
-		$msg = $this->message_split( $data );
+		$msg = Tools::message_split( $data );
 
 		$theme = $this->theme->search( $msg->message );
 
@@ -172,7 +166,7 @@ class WPBot Extends Bot {
 	}
 
 	function google( $irc, $data ) {
-		$msg = $this->message_split( $data );
+		$msg = Tools::message_split( $data );
 
 		$google = $this->google_result( $msg->message );
 
@@ -187,7 +181,7 @@ class WPBot Extends Bot {
 	}
 
 	function lmgtfy( $irc, $data ) {
-		$msg = $this->message_split( $data );
+		$msg = Tools::message_split( $data );
 
 		$query = urlencode( $msg->message );
 
@@ -201,7 +195,7 @@ class WPBot Extends Bot {
 	}
 
 	function language( $irc, $data ) {
-		$msg = $this->message_split( $data );
+		$msg = Tools::message_split( $data );
 
 		$message = sprintf(
 			'%s: Please help us keep %s a family friendly room, and avoid using foul language.',
@@ -224,7 +218,7 @@ class WPBot Extends Bot {
 	}
 
 	function md5( $irc, $data ) {
-		$msg = $this->message_split( $data );
+		$msg = Tools::message_split( $data );
 
 		$message = sprintf(
 			'%s: %s',
