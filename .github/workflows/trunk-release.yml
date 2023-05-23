@@ -38,7 +38,7 @@ jobs:
           rm -rf docker-compose.yml
           rm -rf config-example.php
 
-      - name: Push files to server
+      - name: Set up SSH Auth
         working-directory: ./
         run: |
           echo "::group::Setup Auth Keys"
@@ -51,6 +51,9 @@ jobs:
           ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} > ~/.ssh/known_hosts
           echo "::endgroup::"
 
+      - name: Push files to server
+        working-directory: ./
+        run: |
           echo "::group::RSync files"
           rsync -a ./ ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ secrets.DEPLOY_PATH }}
           echo "::endgroup::"
@@ -58,16 +61,6 @@ jobs:
       - name: Run post-deploy script
         working-directory: ./
         run: |
-          echo "::group::Setup Auth Keys"
-          mkdir ~/.ssh
-          echo "${{ secrets.DEPLOY_KEY }}" >> ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          echo "::endgroup::"
-
-          echo "::group::Pre-approve default priority rsync destination"
-          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} > ~/.ssh/known_hosts
-          echo "::endgroup::"
-
           echo "::group::Run default priority post-deploy script"
           ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "killall php"
           echo "::endgroup::"
