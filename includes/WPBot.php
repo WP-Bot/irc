@@ -334,6 +334,18 @@ class WPBot extends \Net_SmartIRC {
 		$words              = explode( ' ', $data->message );
 		$delimited_position = count( $words ) - 2;
 
+		// If a recipient, or message is not supplied, do not try to send a notice.
+		if ( str_word_count( $data->message ) < 3 ) {
+			$message = sprintf(
+				'%s: To leave a note for an offline user, you may use `.tell [notice] > [recipient]`.',
+				$data->nick
+			);
+
+			$this->message( SMARTIRC_TYPE_CHANNEL, $data->channel, $message, SMARTIRC_CRITICAL );
+
+			return;
+		}
+
 		if ( '>' != $words[ $delimited_position ] ) {
 			$msg->user = $words[1];
 			array_shift( $words );
