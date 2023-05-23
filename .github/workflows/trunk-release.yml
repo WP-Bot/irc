@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: PHP Syntax check
         working-directory: ./
@@ -38,15 +38,36 @@ jobs:
           rm -rf docker-compose.yml
           rm -rf config-example.php
 
-      # rsync code changes, and trigger a force-reload of the PHP process the bot runs on.
-      - name: Push release
-        uses: BuildPC/rsync-with-ssh-github-actions@master
-        with:
-          port: 22
-          args: -a
-          key: ${{ secrets.DEPLOY_KEY }}
-          host: ${{ secrets.DEPLOY_HOST }}
-          user: ${{ secrets.DEPLOY_USER }}
-          destination: ${{ secrets.DEPLOY_PATH }}
-          ssh_after: |
-            killall php
+      - name: Push files to server
+        working-directory: ./
+        run: |
+          echo "::group::Setup Auth Keys"
+          mkdir ~/.ssh
+          echo "${{ secrets.DEPLOY_KEY }}" >> ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo "::endgroup::"
+
+          echo "::group::Pre-approve rsync destination"
+          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} > ~/.ssh/known_hosts
+          echo "::endgroup::"
+
+          echo "::group::RSync files"
+          rsync -a ./ ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ secrets.DEPLOY_PATH }}
+          echo "::endgroup::"
+
+      - name: Run post-deploy script
+        working-directory: ./
+        run: |
+          echo "::group::Setup Auth Keys"
+          mkdir ~/.ssh
+          echo "${{ secrets.DEPLOY_KEY }}" >> ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo "::endgroup::"
+
+          echo "::group::Pre-approve default priority rsync destination"
+          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} > ~/.ssh/known_hosts
+          echo "::endgroup::"
+
+          echo "::group::Run default priority post-deploy script"
+          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "killall php"
+          echo "::endgroup::"
