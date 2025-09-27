@@ -1076,7 +1076,39 @@ class WPBot extends \Net_SmartIRC {
 	}
 
 	function count( $irc, $data ) {
-		$counter = file_get_contents( 'https://wordpress.org/download/counter/?ajaxupdate=1' );
+		$versions = file_get_contents( 'https://api.wordpress.org/core/version-check/1.7/' );
+		$versions = json_decode( $versions, true );
+		$current = null;
+
+		foreach ( $versions['offers'] as $version ) {
+			if ( $version['response'] === 'upgrade' ) {
+				$current = $version;
+				break;
+			}
+		}
+
+		if ( null === $current || ! is_array( $current ) ) {
+			$this->message( SMARTIRC_TYPE_CHANNEL, $data->channel, 'I was unable to get the current download count from WordPress.org, but you can try manualy at https://wordpress.org/download/counter/' );
+			return;
+		}
+
+		$parts = explode( '.', $current['version'] );
+
+		$counter_url = sprintf(
+			'https://wordpress.org/wp-json/wporg/v1/core-downloads/%s?_locale=site',
+			sprintf(
+				'%s.%s',
+				$parts[0],
+				$parts[1]
+			)
+			);
+
+		$counter = file_get_contents( $counter_url );
+
+		if ( strlen( $counter ) > 100 ) {
+			$this->message( SMARTIRC_TYPE_CHANNEL, $data->channel, 'I was unable to get the current download count from WordPress.org, but you can try manualy at https://wordpress.org/download/counter/' );
+			return;
+		}
 
 		$message = sprintf(
 			'The latest version of WordPress has been downloaded %s times',
