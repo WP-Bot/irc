@@ -1104,6 +1104,7 @@ class WPBot extends \Net_SmartIRC {
 			);
 
 		$counter = file_get_contents( $counter_url );
+		$counter = trim( $counter, '" ' );
 
 		if ( strlen( $counter ) > 100 ) {
 			$this->message( SMARTIRC_TYPE_CHANNEL, $data->channel, 'I was unable to get the current download count from WordPress.org, but you can try manualy at https://wordpress.org/download/counter/' );
